@@ -8,6 +8,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     * This method creates the 'departments' table, which stores information about different departments in the organization.
      */
     public function up(): void
     {
@@ -19,7 +20,7 @@ return new class extends Migration
 
     /**
      * Reverse the migrations.
-     * This method drops the 'departments' table. 
+     * This method drops the 'departments' table.
      */
     public function down(): void
     {
