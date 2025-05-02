@@ -1,31 +1,96 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" x-data="{}" x-cloak>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+    <title>{{ config('app.name', 'Laravel') }}</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
-        <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <!-- Alpine.js -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 
-        <!-- Styles -->
-        @livewireStyles
-    </head>
-    <body class="font-sans antialiased">
-        <x-banner />
+    <!-- Vite (Tailwind CSS and JS) -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-        <div class="min-h-screen bg-gray-100">
-            @livewire('navigation-menu')
+    @livewireStyles
+</head>
+<body class="font-sans antialiased bg-gray-100">
+
+    <x-banner />
+
+    <div class="min-h-screen flex">
+
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white border-r dark:bg-gray-900 dark:border-gray-700 h-full z-30 relative lg:fixed">
+            <div class="p-6 text-xl font-semibold text-gray-800 dark:text-white">
+                {{ config('app.name') }}
+            </div>
+            <nav class="mt-6">
+                <a href="{{ route('dashboard') }}" class="block px-6 py-2 text-gray-700 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-gray-700 transition duration-150 ease-in-out">Dashboard</a>
+                <a href="#" class="block px-6 py-2 text-gray-700 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-gray-700 transition duration-150 ease-in-out">Users</a>
+                <a href="#" class="block px-6 py-2 text-gray-700 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-gray-700 transition duration-150 ease-in-out">Settings</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 lg:ml-64">
+            <!-- Top Nav -->
+            <nav class="bg-gray-100 border-b dark:bg-gray-800 dark:border-gray-700 px-4 py-4">
+                <div class="flex justify-between items-center">
+                    <!-- Left side -->
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-600 dark:text-white">Dashboard</h1>
+                    </div>
+
+                    <!-- Right side (Profile Dropdown) -->
+                    <div x-data="{ open: false }" class="relative">
+                        <button @click="open = !open" class="flex items-center space-x-2 focus:outline-none">
+                            @if (Laravel\Jetstream\Jetstream::managesProfilePhotos())
+                                <img src="{{ Auth::user()->profile_photo_url }}" class="w-8 h-8 rounded-full" alt="{{ Auth::user()->name }}">
+                            @else
+                                <span class="text-gray-800 dark:text-white">{{ Auth::user()->name }}</span>
+                            @endif
+                            <svg class="w-4 h-4 text-gray-600 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+
+                        <!-- Dropdown -->
+                        <div x-show="open" @click.away="open = false" x-transition
+                            class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded shadow z-50">
+                            <div class="block px-4 py-2 text-sm text-gray-600 dark:text-gray-300">
+                                {{ __('Manage Account') }}
+                            </div>
+                            <x-dropdown-link href="{{ route('profile.show') }}">
+                                {{ __('Profile') }}
+                            </x-dropdown-link>
+                            @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
+                                <x-dropdown-link href="{{ route('api-tokens.index') }}">
+                                    {{ __('API Tokens') }}
+                                </x-dropdown-link>
+                            @endif
+                            <div class="border-t dark:border-gray-600"></div>
+                            <!-- Logout -->
+                            <form method="POST" action="{{ route('logout') }}" x-data>
+                                @csrf
+                                <x-dropdown-link href="{{ route('logout') }}"
+                                                 @click.prevent="$root.submit();">
+                                    {{ __('Log Out') }}
+                                </x-dropdown-link>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </nav>
 
             <!-- Page Heading -->
             @if (isset($header))
-                <header class="bg-white shadow">
+                <header class="bg-white shadow dark:bg-gray-900 dark:shadow-md">
                     <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
                         {{ $header }}
                     </div>
@@ -33,13 +98,13 @@
             @endif
 
             <!-- Page Content -->
-            <main>
+            <main class="p-6">
                 {{ $slot }}
             </main>
         </div>
+    </div>
 
-        @stack('modals')
-
-        @livewireScripts
-    </body>
+    @stack('modals')
+    @livewireScripts
+</body>
 </html>
