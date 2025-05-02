@@ -21,6 +21,7 @@ class Contract extends Model
      */
     protected $fillable = [
         'title', // The title of the contract
+        'content', // The title of the contract
         'start_date', // The start date of the contract
         'end_date', // The end date of the contract
         'contract_type', // The type of the contract (e.g., service, employment)
@@ -28,6 +29,8 @@ class Contract extends Model
         'file', // File attachment associated with the contract
         'responsible_user_id', // Foreign key linking to the user responsible for the contract
     ];
+
+    public $timestamps = false;
 
     /**
      * Define the relationship for the responsible user.
