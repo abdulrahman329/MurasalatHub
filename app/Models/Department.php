@@ -12,6 +12,8 @@ class Department extends Model
         'name',
     ];
 
+    public $timestamps = false; // Disable automatic timestamps
+
     /**
      * Define the relationship between Department and User.
      * A department has many users.

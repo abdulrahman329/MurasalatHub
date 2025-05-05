@@ -11,7 +11,7 @@ class Correspondence extends Model
  *
  * @var string
  */
-protected $table = 'Correspondence';
+protected $table = 'correspondences';
 
 /**
  * The attributes that are mass assignable.
@@ -30,6 +30,9 @@ protected $fillable = [
     'status', // The status of the correspondence (e.g., pending, completed)
     'created_by', // Foreign key linking to the user who created the correspondence
 ];
+
+public $timestamps = false;
+
 
 /**
  * Define the relationship for the sender department.

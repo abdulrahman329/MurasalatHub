@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('correspondences', function (Blueprint $table) {
             $table->id(); // Primary key
             $table->string('subject'); // Subject of the correspondence
-            $table->enum('type', ['incoming', 'outgoing']); // Type of correspondence
+            $table->enum('type', ['email', 'fix','letter']); // Type of correspondence
             $table->string('number'); // Unique number for the correspondence
             $table->foreignId('sender_department_id')->constrained('departments')->onDelete('cascade'); // Foreign key linking to sender department with cascading delete
             $table->foreignId('receiver_department_id')->constrained('departments')->onDelete('cascade'); // Foreign key linking to receiver department with cascading delete

@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('contracts', function (Blueprint $table) {
             $table->id(); // Primary key
             $table->string('title'); // Title of the contract
-            $table->text('content'); // Content or details of the contract
             $table->date('start_date'); // Start date of the contract
             $table->date('end_date'); // End date of the contract
             $table->string('contract_type'); // Type of the contract (e.g., service, employment)
