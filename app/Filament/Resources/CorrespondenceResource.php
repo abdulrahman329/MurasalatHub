@@ -3,15 +3,15 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CorrespondenceResource\Pages;
-use App\Filament\Resources\CorrespondenceResource\RelationManagers;
 use App\Models\Correspondence;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Filters;
+use Filament\Tables\Filters\DateFilter;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
@@ -41,14 +41,6 @@ class CorrespondenceResource extends Resource
                 Forms\Components\TextInput::make('subject')
                     ->required(), // The subject is a required field
 
-                // Select field for type of correspondence (email, letter, or fax)
-                Forms\Components\Select::make('type')
-                    ->options([ // Options for correspondence types
-                        'email' => 'Email',
-                        'letter' => 'Letter',
-                        'fax' => 'Fax',
-                    ]),
-
                 // Numeric input for correspondence number (should be unique and between 1 and 999)
                 Forms\Components\TextInput::make('number')
                     ->unique() // Ensure the correspondence number is unique
@@ -72,11 +64,12 @@ class CorrespondenceResource extends Resource
                     ->searchable() // Allow searching for departments
                     ->required(), // The receiver department is a required field
 
-                // File upload field for correspondence files
-                Forms\Components\FileUpload::make('file'),
-
-                // Textarea for notes related to the correspondence
-                Forms\Components\Textarea::make('notes'),
+                // Select field for the user who created the correspondence
+                Forms\Components\Select::make('created_by')
+                    ->label('Created By User')
+                    ->relationship('creator', 'name') // Relationship to the creator model (displays user names)
+                    ->searchable() // Allow searching for users
+                    ->required(), // The creator is a required field
 
                 // Select field for status (Pending, Approved, Rejected)
                 Forms\Components\Select::make('status')
@@ -87,12 +80,19 @@ class CorrespondenceResource extends Resource
                     ])
                     ->required(), // Status is a required field
 
-                // Select field for the user who created the correspondence
-                Forms\Components\Select::make('created_by')
-                    ->label('Created By User')
-                    ->relationship('creator', 'name') // Relationship to the creator model (displays user names)
-                    ->searchable() // Allow searching for users
-                    ->required(), // The creator is a required field
+                // Select field for type of correspondence (email, letter, or fax)
+                Forms\Components\Select::make('type')
+                    ->options([ // Options for correspondence types
+                        'email' => 'Email',
+                        'letter' => 'Letter',
+                        'fax' => 'Fax',
+                    ]),
+
+                // Textarea for notes related to the correspondence
+                Forms\Components\Textarea::make('notes'),
+
+                // File upload field for correspondence files
+                Forms\Components\FileUpload::make('file'),
             ]);
     }
 
@@ -107,8 +107,14 @@ class CorrespondenceResource extends Resource
         return $table
             ->columns([ // Define the columns displayed in the table
 
+                // Display the correspondence ID (primary key)
+                TextColumn::make('id'),
+
                 // Display the subject of the correspondence
                 TextColumn::make('subject'),
+
+                // Display any additional notes related to the correspondence
+                TextColumn::make('notes'),
 
                 // Display the sender's department name
                 TextColumn::make('senderDepartment.name')
@@ -136,21 +142,41 @@ class CorrespondenceResource extends Resource
                         if ($state === null) {
                             return '❌ No File';
                         } else if (isset($state)) {
-                            return '✅ File Available';
+                            return '✅ File';
                         }
                     }),
 
-                // Display any additional notes related to the correspondence
-                TextColumn::make('notes'),
+                // Display the status of the correspondence (Pending, Approved, Rejected)
+                TextColumn::make('status'),
 
                 // Display the name of the user who created the correspondence
                 TextColumn::make('creator.name')
                     ->label('Created By'),
-
-                // Display the status of the correspondence (Pending, Approved, Rejected)
-                TextColumn::make('status'),
             ])
             ->filters([ // Define filters to filter the data in the table
+
+                // Search filter to filter by subject, ID, number, sender, or receiver department name
+                Tables\Filters\Filter::make('search')  
+                    ->form([
+                        Forms\Components\TextInput::make('search')
+                            ->label('Search for subject or id or number or senderDepartment Name or receiverDepartment name')
+                            ->placeholder('subject or id or number or senderDepartment Name or receiverDepartment name'),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if ($search = $data['search'] ?? null) {
+                            $query->where(function ($q) use ($search) {
+                                $q->where('id', 'like', "%{$search}%")
+                                    ->orWhere('subject', 'like', "%{$search}%")
+                                    ->orWhere('number', 'like', "%{$search}%")
+                                    ->orWhereHas('senderDepartment', function ($q) use ($search) {
+                                        $q->where('name', 'like', "%{$search}%");
+                                    })
+                                    ->orWhereHas('receiverDepartment', function ($q) use ($search) {
+                                        $q->where('name', 'like', "%{$search}%");
+                                    });
+                            });
+                        }
+                    }),
 
                 // Filter by correspondence type (email, letter, fax)
                 Tables\Filters\SelectFilter::make('type')
@@ -160,12 +186,6 @@ class CorrespondenceResource extends Resource
                         'fax' => 'Fax',
                     ]),
 
-                // Filter by the user who created the correspondence
-                Tables\Filters\SelectFilter::make('created_by')
-                    ->label('Created By User')
-                    ->relationship('creator', 'name') // Relationship to the creator model
-                    ->searchable(), // Allow searching for users
-
                 // Filter by correspondence status (Pending, Approved, Rejected)
                 Tables\Filters\SelectFilter::make('status')
                     ->options([ // Options for the filter
@@ -173,6 +193,13 @@ class CorrespondenceResource extends Resource
                         'approved' => 'Approved',
                         'rejected' => 'Rejected',
                     ]),
+
+                // Filter by the user who created the correspondence
+                Tables\Filters\SelectFilter::make('created_by')
+                    ->label('Created By User')
+                    ->relationship('creator', 'name') // Relationship to the creator model
+                    ->searchable(), // Allow searching for users
+
             ])
             ->actions([ // Define actions for each record in the table
 

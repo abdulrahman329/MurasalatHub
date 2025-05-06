@@ -4,15 +4,16 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers;
-use App\Models\User;  // Import the User model
-use Filament\Forms;  // Import Filament's Form class
+use App\Models\User;  
+use Filament\Forms; 
 use Filament\Forms\Form;
-use Filament\Forms\Components\TextInput;  // Import TextInput component from Filament
+use Filament\Forms\Components\TextInput;  
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Resources\Resource;  // The base Resource class in Filament
-use Filament\Tables;  // The Filament Tables package
+use Filament\Resources\Resource;  
+use Filament\Tables;  
 use Filament\Tables\Table;
-use Filament\Tables\Columns\TextColumn;  // Import the TextColumn to render table columns
+use Filament\Tables\Columns\TextColumn;  
+use Filament\Forms\Components\Select;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
@@ -24,45 +25,59 @@ class UserResource extends Resource
     // The icon to show in the Filament navigation sidebar
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    // Method to define the form schema for creating or updating a User
+    /**
+     * Define the form schema for creating or updating a User.
+     *
+     * @param Form $form
+     * @return Form
+     */
     public static function form(Form $form): Form
     {
         return $form
-            ->schema([
-                // TextInput for department_id, which is required
-                Forms\Components\TextInput::make('department_id')
-                    ->required(),  // Make this field required
+            ->schema([  // Define the schema for the form fields
 
                 // TextInput for the user's name, which is required
                 Forms\Components\TextInput::make('name')
-                    ->required(),
+                    ->required(),  // Name is a required field
 
                 // TextInput for email, which is required and must be a valid email
                 Forms\Components\TextInput::make('email')
                     ->email()  // This will validate the field as an email
-                    ->required(),
+                    ->required(),  // Email is a required field
 
-                // TextInput for password, which is required
+                // TextInput for password, which is required and will mask input
                 Forms\Components\TextInput::make('password')
                     ->password()  // The password field will mask input
-                    ->required(),
+                    ->required(),  // Password is a required field
 
-                // TextInput for current_team_id, not required (could be nullable)
+                // Select input for department, which is required
+                Select::make('Department_id')
+                    ->label('Department name')  // Label for the department field
+                    ->relationship('department', 'name')  // Relationship to the 'department' model
+                    ->searchable()  // Make the select input searchable
+                    ->required(),  // Department is a required field
+
+                // TextInput for current_team_id (nullable, not required)
                 Forms\Components\TextInput::make('current_team_id'),
 
-                // TextInput for profile_photo_path, not required (could be nullable)
+                // TextInput for profile_photo_path (nullable, not required)
                 Forms\Components\TextInput::make('profile_photo_path'),
             ]);
     }
 
-    // Method to define the table schema, which will display data in a tabular format
+    /**
+     * Define the table schema, which will display user data in a tabular format.
+     *
+     * @param Table $table
+     * @return Table
+     */
     public static function table(Table $table): Table
     {
         return $table
-            ->columns([
-                // Display the department name related to the user (assuming the User model has a relationship to Department)
-                Tables\Columns\TextColumn::make('department.name')
-                    ->label('Department'),
+            ->columns([  // Define the columns to be displayed in the table
+
+                // Display the user's ID
+                Tables\Columns\TextColumn::make('id'),
 
                 // Display the user's name
                 Tables\Columns\TextColumn::make('name'),
@@ -70,71 +85,81 @@ class UserResource extends Resource
                 // Display the user's email
                 Tables\Columns\TextColumn::make('email'),
 
-                // Hide the password and remember_token fields in the table (sensitive information)
-                Tables\Columns\TextColumn::make('password')
-                    ->hidden(),
-                Tables\Columns\TextColumn::make('remember_token')
-                    ->hidden(),
+                // Display the department name related to the user
+                Tables\Columns\TextColumn::make('department.name')
+                    ->label('Department'),
+
+                // Hide the password and remember_token fields (sensitive information)
+                Tables\Columns\TextColumn::make('password')->hidden(),
+                Tables\Columns\TextColumn::make('remember_token')->hidden(),
 
                 // Display created_at and updated_at as datetime columns
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime(),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime(),
+                Tables\Columns\TextColumn::make('created_at')->dateTime(),
+                Tables\Columns\TextColumn::make('updated_at')->dateTime(),
             ])
-            ->filters([
-                // A filter for the 'name' field, allowing the user to search for users by name
-                Tables\Filters\Filter::make('name')
-                    ->form([
-                        Forms\Components\TextInput::make('name')
-                            ->label('Name'),
+            ->filters([  // Define filters available for the table
+
+                // Search filter that allows searching by user ID, name, or email
+                Tables\Filters\Filter::make('search')
+                    ->form([  // Define the search form input field
+                        Forms\Components\TextInput::make('search')
+                            ->label('Search for id or name or email')  // Label for the search field
+                            ->placeholder('id or name or email'),  // Placeholder text
                     ])
-                    ->query(function (Builder $query, array $data) {
-                        if ($data['name'] ?? false) {
-                            $query->where('name', 'like', '%' . $data['name'] . '%');  // Filter by name
+                    ->query(function (Builder $query, array $data) {  // Query to filter users based on search input
+                        if ($search = $data['search'] ?? null) {
+                            $query->where(function ($q) use ($search) {
+                                // Filter by user ID, name, email, or department name
+                                $q->where('id', 'like', "%{$search}%")
+                                    ->orWhere('name', 'like', "%{$search}%")
+                                    ->orWhere('email', 'like', "%{$search}%")
+                                    ->orWhereHas('department', function ($q) use ($search) {
+                                        $q->where('name', 'like', "%{$search}%");
+                                    });
+                            });
                         }
                     }),
 
-                // A filter for the 'email' field, allowing the user to search for users by email
-                Tables\Filters\Filter::make('email')
-                    ->form([
-                        Forms\Components\TextInput::make('email')
-                            ->label('Email'),
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        if ($data['email'] ?? false) {
-                            $query->where('email', 'like', '%' . $data['email'] . '%');  // Filter by email
-                        }
-                    }),
-
-                // A filter for selecting users by department (using a relationship between User and Department models)
+                // A filter for selecting users by department
                 Tables\Filters\SelectFilter::make('department_id')
+                    ->label('Department')
                     ->relationship('department', 'name')  // Link to the 'department' relationship and show 'name'
-                    ->label('Department'),
+                    ->searchable(),  // Make the department filter searchable
             ])
-            ->actions([
-                // The "Edit" action that allows the user to edit a record
+            ->actions([  // Define actions that can be taken on a record
+
+                // Action to edit a user record
                 Tables\Actions\EditAction::make(),
-                // The "Delete" action that allows the user to delete a record
-                Tables\Actions\DeleteAction::make()
+
+                // Action to delete a user record
+                Tables\Actions\DeleteAction::make(),
             ])
-            ->bulkActions([
-                // A bulk action to delete multiple records at once
+            ->bulkActions([  // Define bulk actions for multiple records
+
+                // Bulk action to delete multiple user records
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),  // Bulk delete action
                 ]),
             ]);
     }
 
-    // Method for defining relations (not implemented in this case)
+    /**
+     * Define the relations for this resource (if any).
+     *
+     * @return array
+     */
     public static function getRelations(): array
     {
         return [
-            // This would return an array of relation managers if there were any related resources (not used here)
+            // Define relationships to other resources if needed (none used here)
         ];
     }
 
-    // Method for defining the pages of this resource (index, create, edit)
+    /**
+     * Define the pages for this resource (index, create, and edit).
+     *
+     * @return array
+     */
     public static function getPages(): array
     {
         return [

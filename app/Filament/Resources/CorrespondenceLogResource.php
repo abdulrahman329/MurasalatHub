@@ -14,9 +14,9 @@ use App\Models\Correspondence_log;
 use Filament\Forms\Components\BelongsToSelect;
 use Filament\Forms\Components\Select;
 use App\Models\User;
-use Filament\Tables\Filters\SelectFilter; 
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
-use App\Models\Correspondence;  
+use App\Models\Correspondence;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
@@ -118,7 +118,9 @@ class CorrespondenceLogResource extends Resource
                 // Select filter to filter by "Created By" user
                 Tables\Filters\SelectFilter::make('Created By')
                     ->label('Created By') // Label for the filter
-                    ->relationship('user', 'name'), // Link the filter to the 'user' relationship and display their name
+                    ->relationship('user', 'name')// Link the filter to the 'user' relationship and display their name
+                    ->searchable(), // Allow searching for users
+
             ])
             ->actions([
                 // Action buttons to edit or delete individual correspondence logs

@@ -43,28 +43,28 @@ class ContractsResource extends Resource
         return $form->schema([  // Define the fields for the contract form
             TextInput::make('title')->required(),  // Title of the contract (required)
 
+            TextInput::make('contract_type')->required(),  // Type of contract (required)
+    
             TextInput::make('party_name')->required(),  // Name of the contracting party (required)
-            
-            DatePicker::make('start_date')  // Start date of the contract
+
+            Select::make('responsible_user_id')  // Select input for the responsible user
+                ->label('Responsible User')
+                ->relationship('responsibleUser', 'name')  // Relationship to the 'responsibleUser' model
+                ->searchable()  // Make the select input searchable
+                ->required(),  // The responsible user is a required field
+
+                DatePicker::make('start_date')  // Start date of the contract
                 ->required()
                 ->before('end_date'),  // Ensure that start date is before the end date
 
             DatePicker::make('end_date')  // End date of the contract
                 ->required()
                 ->after('start_date'),  // Ensure that end date is after the start date
-    
-            TextInput::make('contract_type')->required(),  // Type of contract (required)
         
             FileUpload::make('file')  // File upload for attaching the contract file
                 ->directory('contracts')  // Store the file in the 'contracts' folder
                 ->acceptedFileTypes(['application/pdf', 'image/*'])  // Accept PDF and image files
                 ->maxSize(10240),  // Limit file size to 10MB
-    
-            Select::make('responsible_user_id')  // Select input for the responsible user
-                ->label('Responsible User')
-                ->relationship('responsibleUser', 'name')  // Relationship to the 'responsibleUser' model
-                ->searchable()  // Make the select input searchable
-                ->required(),  // The responsible user is a required field
         ]);
     }
 
@@ -79,8 +79,7 @@ class ContractsResource extends Resource
         return $table
             ->columns([  // Define the columns for the contracts table
                 TextColumn::make('title')->sortable()->searchable(),  // Title column, sortable and searchable
-                TextColumn::make('start_date')->sortable()->date(),  // Start date column, sortable and displayed as date
-                TextColumn::make('end_date')->sortable()->date(),  // End date column, sortable and displayed as date   
+                TextColumn::make('responsibleUser.name')->label('Responsible'),  // Responsible user column
                 TextColumn::make('contract_type'),  // Contract type column
                 TextColumn::make('party_name'),  // Party name column
                 TextColumn::make('file')  // File column
@@ -89,16 +88,17 @@ class ContractsResource extends Resource
                         if ($state === null) {
                             return '❌ No File';  // No file uploaded
                         } else if (isset($state)) {
-                            return '✅ File Available';  // File uploaded
+                            return '✅ File ';  // File uploaded
                         }
-                    }),
-                TextColumn::make('responsibleUser.name')->label('Responsible'),  // Responsible user column
+                    }),                
+                TextColumn::make('start_date')->sortable()->date(),  // Start date column, sortable and displayed as date
+                TextColumn::make('end_date')->sortable()->date(),  // End date column, sortable and displayed as date   
             ])
             ->filters([  // Define filters to apply to the table
                 Tables\Filters\Filter::make('search')  // Search filter by title, party name, or contract type
                     ->form([
                         Forms\Components\TextInput::make('search')
-                            ->label('Search')
+                            ->label('Search for Title or Party Name or Contract Type')
                             ->placeholder('Title or Party Name or Contract Type'),
                     ])
                     ->query(function (Builder $query, array $data) {
@@ -135,7 +135,8 @@ class ContractsResource extends Resource
                 
                 Tables\Filters\SelectFilter::make('responsible_user_id')  // Filter contracts by responsible user
                     ->label('Responsible User')
-                    ->relationship('responsibleUser', 'name'),
+                    ->relationship('responsibleUser', 'name')
+                    ->searchable(), 
             ])
             ->actions([  // Define actions that can be performed on individual records
                 Tables\Actions\EditAction::make(),  // Action to edit a contract
