@@ -22,7 +22,6 @@ protected $table = 'correspondences';
 protected $fillable = [
     'subject', // The subject of the correspondence
     'type', // The type of correspondence (e.g., email, letter)
-    'number', // A unique number identifying the correspondence
     'sender_department_id', // Foreign key linking to the sender's department
     'receiver_department_id', // Foreign key linking to the receiver's department
     'file', // File attachment associated with the correspondence

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CorrespondenceResource\Pages;
+use App\Filament\Resources\CorrespondenceResource\Pages\ListCorrespondence;
 use App\Models\Correspondence;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -41,14 +42,12 @@ class CorrespondenceResource extends Resource
                 Forms\Components\TextInput::make('subject')
                     ->required(), // The subject is a required field
 
-                // Numeric input for correspondence number (should be unique and between 1 and 999)
-                Forms\Components\TextInput::make('number')
-                    ->unique() // Ensure the correspondence number is unique
-                    ->numeric() // Ensure the number is numeric
-                    ->minValue(1) // Minimum value for the number is 1
-                    ->maxValue(999) // Maximum value for the number is 999
-                    ->maxLength(3) // Maximum length is 3 digits
-                    ->required(), // The number is a required field
+                    // Select field for the user who created the correspondence
+                Forms\Components\Select::make('created_by')
+                ->label('Created By User')
+                ->relationship('creator', 'name') // Relationship to the creator model (displays user names)
+                ->searchable() // Allow searching for users
+                ->required(), // The creator is a required field
 
                 // Select field for sender department
                 Forms\Components\Select::make('sender_department_id')
@@ -64,13 +63,6 @@ class CorrespondenceResource extends Resource
                     ->searchable() // Allow searching for departments
                     ->required(), // The receiver department is a required field
 
-                // Select field for the user who created the correspondence
-                Forms\Components\Select::make('created_by')
-                    ->label('Created By User')
-                    ->relationship('creator', 'name') // Relationship to the creator model (displays user names)
-                    ->searchable() // Allow searching for users
-                    ->required(), // The creator is a required field
-
                 // Select field for status (Pending, Approved, Rejected)
                 Forms\Components\Select::make('status')
                     ->options([ // Status options
@@ -78,21 +70,28 @@ class CorrespondenceResource extends Resource
                         'approved' => 'Approved',
                         'rejected' => 'Rejected',
                     ])
+                    ->default('Pending') // Default status is Pending
                     ->required(), // Status is a required field
-
-                // Select field for type of correspondence (email, letter, or fax)
+                    
+                // Select field for type of correspondence 
                 Forms\Components\Select::make('type')
-                    ->options([ // Options for correspondence types
-                        'email' => 'Email',
-                        'letter' => 'Letter',
-                        'fax' => 'Fax',
-                    ]),
-
-                // Textarea for notes related to the correspondence
-                Forms\Components\Textarea::make('notes'),
+                ->options([
+                    'email' => 'Email',
+                    'letter' => 'Letter',
+                    'fax' => 'Fax',
+                    'memo' => 'Memo',
+                    'report' => 'Report',
+                    'notification' => 'Notification',
+                    'circular' => 'Circular',
+                    'invoice' => 'Invoice',
+                    'other' => 'Other',
+                ]),
 
                 // File upload field for correspondence files
                 Forms\Components\FileUpload::make('file'),
+
+                // Textarea for notes related to the correspondence
+                Forms\Components\Textarea::make('notes'),
             ]);
     }
 
@@ -106,9 +105,6 @@ class CorrespondenceResource extends Resource
     {
         return $table
             ->columns([ // Define the columns displayed in the table
-
-                // Display the correspondence ID (primary key)
-                TextColumn::make('id'),
 
                 // Display the subject of the correspondence
                 TextColumn::make('subject'),
@@ -127,27 +123,35 @@ class CorrespondenceResource extends Resource
                 // Display the type of correspondence (email, letter, or fax)
                 TextColumn::make('type'),
 
-                // Display the correspondence number, ensuring it is always 3 digits (e.g., 001, 002, etc.)
-                TextColumn::make('number')
-                    ->label('Number')
-                    ->formatStateUsing(function ($state, $record) {
-                        return str_pad($state, 3, '0', STR_PAD_LEFT); // Pad the number with leading zeros to make it 3 digits
-                    }),
-
-                // Display the file status (whether the file is available or not)
-                TextColumn::make('file')
+                    TextColumn::make('file')  // File column
                     ->label('File')
-                    ->formatStateUsing(function ($state) {
-                        // If no file is uploaded, display "No File", otherwise display "File Available"
-                        if ($state === null) {
-                            return '❌ No File';
-                        } else if (isset($state)) {
-                            return '✅ File';
-                        }
+                    ->getStateUsing(function ($record) {
+                    // Add custom logic for determining if a file exists
+                    if (empty($record->file)) {
+                        return '❌ No File';
+                    }
+    
+                        // Return custom file info, e.g., filename or extension
+                        return '✅ ' . pathinfo($record->file, PATHINFO_EXTENSION) . ' File';
                     }),
 
                 // Display the status of the correspondence (Pending, Approved, Rejected)
-                TextColumn::make('status'),
+                TextColumn::make('status')
+                    ->label('Status')
+                    ->sortable() // Allow sorting by status
+                    ->getStateUsing(function ($record) {
+                        // Example: Show an icon or text based on status
+                        switch ($record->status) {
+                            case 'approved':
+                            return '✅ Approved';
+                             case 'pending':
+                            return '⏳ Pending';
+                             case 'rejected':
+                            return '❌ Rejected';
+                            default:
+                            return 'Pending';
+                    }
+                }),
 
                 // Display the name of the user who created the correspondence
                 TextColumn::make('creator.name')
@@ -202,6 +206,12 @@ class CorrespondenceResource extends Resource
 
             ])
             ->actions([ // Define actions for each record in the table
+                
+                // Custom action to view details of a correspondence record
+                Tables\Actions\Action::make('view')
+                    ->label('View')
+                    ->url(fn ($record) => route('filament.admin.resources.correspondences.view', $record->id))
+                    ->icon('heroicon-o-eye'),
 
                 // Action to edit a correspondence record
                 Tables\Actions\EditAction::make(),
@@ -244,6 +254,13 @@ class CorrespondenceResource extends Resource
                         })
                         ->requiresConfirmation() // Require confirmation before executing the action
                         ->color('danger'), // Set the color to danger
+
+                    // Bulk action to export selected correspondences
+                    Tables\Actions\BulkAction::make('export')
+                        ->label('Export Selected')
+                        ->action(function ($records) {
+                            // Export logic here
+                        })
                 ]),
             ]);
     }
@@ -269,13 +286,16 @@ class CorrespondenceResource extends Resource
     {
         return [
             // Route to the list page
-            'index' => Pages\ListCorrespondences::route('/'),
+            'index' => Pages\ListCorrespondence::route('/'),
 
             // Route to the create page
             'create' => Pages\CreateCorrespondence::route('/create'),
 
             // Route to the edit page
             'edit' => Pages\EditCorrespondence::route('/{record}/edit'),
+            
+            // Route to view a specific correspondence 
+            'view' => Pages\ViewCorrespondence::route('/{record}/view'),
         ];
     }
 }

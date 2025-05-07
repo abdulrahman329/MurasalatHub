@@ -123,6 +123,14 @@ class CorrespondenceLogResource extends Resource
 
             ])
             ->actions([
+
+                // Action to view correspondence log details
+                Tables\Actions\Action::make('view')
+                    ->label('View')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn ($record) => route('filament.admin.resources.correspondence-logs.view', $record->id))
+                    ->openUrlInNewTab(),
+
                 // Action buttons to edit or delete individual correspondence logs
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
@@ -156,11 +164,13 @@ class CorrespondenceLogResource extends Resource
     {
         return [
             // Route to the list page
-            'index' => Pages\ListCorrespondenceLogs::route('/'),
+            'index' => Pages\ListCorrespondenceLog::route('/'),
             // Route to the create page
             'create' => Pages\CreateCorrespondenceLog::route('/create'),
             // Route to the edit page
             'edit' => Pages\EditCorrespondenceLog::route('/{record}/edit'),
+            // Route to view a specific correspondence log
+            'view' => Pages\ViewCorrespondenceLog::route('/{record}/view'), 
         ];
     }
 }

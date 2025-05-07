@@ -56,12 +56,6 @@ class UserResource extends Resource
                     ->relationship('department', 'name')  // Relationship to the 'department' model
                     ->searchable()  // Make the select input searchable
                     ->required(),  // Department is a required field
-
-                // TextInput for current_team_id (nullable, not required)
-                Forms\Components\TextInput::make('current_team_id'),
-
-                // TextInput for profile_photo_path (nullable, not required)
-                Forms\Components\TextInput::make('profile_photo_path'),
             ]);
     }
 
@@ -89,13 +83,6 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('department.name')
                     ->label('Department'),
 
-                // Hide the password and remember_token fields (sensitive information)
-                Tables\Columns\TextColumn::make('password')->hidden(),
-                Tables\Columns\TextColumn::make('remember_token')->hidden(),
-
-                // Display created_at and updated_at as datetime columns
-                Tables\Columns\TextColumn::make('created_at')->dateTime(),
-                Tables\Columns\TextColumn::make('updated_at')->dateTime(),
             ])
             ->filters([  // Define filters available for the table
 
@@ -125,14 +112,27 @@ class UserResource extends Resource
                     ->label('Department')
                     ->relationship('department', 'name')  // Link to the 'department' relationship and show 'name'
                     ->searchable(),  // Make the department filter searchable
+
+                // A filter for recently created users
+                Tables\Filters\Filter::make('recent')
+                    ->label('Recently Created')
+                    ->query(fn (Builder $query) => $query->where('created_at', '>=', now()->subDays(7))),
             ])
             ->actions([  // Define actions that can be taken on a record
+
+                // Action to view contract details
+                Tables\Actions\Action::make('view')
+                    ->label('View')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn ($record) => route('filament.admin.resources.users.view', $record->id))
+                    ->openUrlInNewTab(),
 
                 // Action to edit a user record
                 Tables\Actions\EditAction::make(),
 
                 // Action to delete a user record
                 Tables\Actions\DeleteAction::make(),
+
             ])
             ->bulkActions([  // Define bulk actions for multiple records
 
@@ -163,9 +163,10 @@ class UserResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUsers::route('/'),  // The page for listing all users
+            'index' => Pages\ListUser::route('/'),  // The page for listing all users
             'create' => Pages\CreateUser::route('/create'),  // The page for creating a new user
             'edit' => Pages\EditUser::route('/{record}/edit'),  // The page for editing a user
+            'view' => Pages\ViewUser::route('/{record}/view'),  // The page for viewing a user's details
         ];
     }
 }

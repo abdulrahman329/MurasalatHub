@@ -12,7 +12,7 @@ use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\Action;
-use App\Filament\Resources\ContractsResource\Pages\{ListContracts, CreateContracts, EditContracts};
+use App\Filament\Resources\ContractsResource\Pages\{ListContracts, CreateContracts, EditContracts, ViewContracts};
 use App\Filament\Resources\ContractsResource\Pages;
 use App\Filament\Resources\ContractsResource\RelationManagers;
 use Filament\Forms;
@@ -42,29 +42,52 @@ class ContractsResource extends Resource
     {
         return $form->schema([  // Define the fields for the contract form
             TextInput::make('title')->required(),  // Title of the contract (required)
+            Select::make('contract_type')
+                ->label('Contract Type')
+                ->options([
+                    'Procurement Contract' => 'Procurement Contract',
+                    'Service Contract' => 'Service Contract',
+                    'Consulting Contract' => 'Consulting Contract',
+                    'Lease Contract' => 'Lease Contract',
+                    'Maintenance Contract' => 'Maintenance Contract',
+                    'Sales Contract' => 'Sales Contract',
+                    'Employment Contract' => 'Employment Contract',
+                ])
+                ->required(),
 
-            TextInput::make('contract_type')->required(),  // Type of contract (required)
-    
-            TextInput::make('party_name')->required(),  // Name of the contracting party (required)
+                DatePicker::make('start_date')  // Start date of the contract
+                ->required()
+                ->before('end_date')  // Ensure that start date is before the end date
+                ->minDate(now()),  // Ensure start date is not before today
 
-            Select::make('responsible_user_id')  // Select input for the responsible user
+            DatePicker::make('end_date')  // End date of the contract
+                ->required()
+                ->after('start_date'),  // Ensure that end date is after the start date
+
+                Select::make('responsible_user_id')  // Select input for the responsible user
                 ->label('Responsible User')
                 ->relationship('responsibleUser', 'name')  // Relationship to the 'responsibleUser' model
                 ->searchable()  // Make the select input searchable
                 ->required(),  // The responsible user is a required field
 
-                DatePicker::make('start_date')  // Start date of the contract
-                ->required()
-                ->before('end_date'),  // Ensure that start date is before the end date
-
-            DatePicker::make('end_date')  // End date of the contract
-                ->required()
-                ->after('start_date'),  // Ensure that end date is after the start date
-        
-            FileUpload::make('file')  // File upload for attaching the contract file
-                ->directory('contracts')  // Store the file in the 'contracts' folder
-                ->acceptedFileTypes(['application/pdf', 'image/*'])  // Accept PDF and image files
-                ->maxSize(10240),  // Limit file size to 10MB
+        // Accept more than just PDF and image files (e.g., Word, Excel, PowerPoint, ZIP)
+        FileUpload::make('file')
+            ->directory('contracts')
+            ->acceptedFileTypes([
+            'application/pdf',
+            'image/*',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'application/zip',
+            'application/x-7z-compressed',
+            'application/x-rar-compressed',
+            'application/x-tar',
+            ])
+            ->maxSize(10240),
         ]);
     }
 
@@ -81,16 +104,17 @@ class ContractsResource extends Resource
                 TextColumn::make('title')->sortable()->searchable(),  // Title column, sortable and searchable
                 TextColumn::make('responsibleUser.name')->label('Responsible'),  // Responsible user column
                 TextColumn::make('contract_type'),  // Contract type column
-                TextColumn::make('party_name'),  // Party name column
                 TextColumn::make('file')  // File column
-                    ->label('File')
-                    ->formatStateUsing(function ($state) {  // Custom formatting for the file column
-                        if ($state === null) {
-                            return '❌ No File';  // No file uploaded
-                        } else if (isset($state)) {
-                            return '✅ File ';  // File uploaded
-                        }
-                    }),                
+                ->label('File')
+                ->getStateUsing(function ($record) {
+                // Add custom logic for determining if a file exists
+                if (empty($record->file)) {
+                    return '❌ No File';
+                }
+
+                    // Return custom file info, e.g., filename or extension
+                    return '✅ ' . pathinfo($record->file, PATHINFO_EXTENSION) . ' File';
+                }),              
                 TextColumn::make('start_date')->sortable()->date(),  // Start date column, sortable and displayed as date
                 TextColumn::make('end_date')->sortable()->date(),  // End date column, sortable and displayed as date   
             ])
@@ -139,8 +163,18 @@ class ContractsResource extends Resource
                     ->searchable(), 
             ])
             ->actions([  // Define actions that can be performed on individual records
+                
+                // Action to view contract details
+                Tables\Actions\Action::make('view')
+                    ->label('View')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn ($record) => route('filament.admin.resources.contracts.view', $record->id))
+                    ->openUrlInNewTab(),
+
                 Tables\Actions\EditAction::make(),  // Action to edit a contract
+
                 Tables\Actions\DeleteAction::make(),  // Action to delete a contract
+
             ])
             ->bulkActions([  // Define bulk actions that can be performed on selected records
                 Tables\Actions\BulkActionGroup::make([  // Group for bulk actions
@@ -173,6 +207,18 @@ class ContractsResource extends Resource
             'index' => Pages\ListContracts::route('/'),  // List page for contracts
             'create' => Pages\CreateContracts::route('/create'),  // Create page for new contracts
             'edit' => Pages\EditContracts::route('/{record}/edit'),  // Edit page for editing existing contracts
+            'view' => Pages\ViewContracts::route('/{record}/view'),  // View page for viewing contract details 
         ];
     }
+
+    public static function getModelLabel(): string
+{
+    return __('عقد');
+}
+
+public static function getPluralModelLabel(): string
+{
+    return __('عقود');
+}
+
 }

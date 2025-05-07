@@ -50,14 +50,8 @@ class DepartmentResource extends Resource
         return $table
             ->columns([ // Define the columns displayed in the table
 
-                // Display the department ID (sortable)
-                TextColumn::make('id')
-                    ->label('ID')
-                    ->sortable(),
-
                 // Display the department name (sortable and searchable)
                 TextColumn::make('name')
-                    ->sortable()  // Allows sorting by name
                     ->searchable(), // Allows searching by department name
             ])
             ->filters([  // Define the filters available for the table
@@ -67,19 +61,25 @@ class DepartmentResource extends Resource
                     ->form([  // Define the search form input field
                         Forms\Components\TextInput::make('search')
                             ->label('Search for name or id')  // Label for the search field
-                            ->placeholder('name or department id'),  // Placeholder text
+                            ->placeholder('name'),  // Placeholder text
                     ])
                     ->query(function (Builder $query, array $data) {  // Query to filter departments based on search input
                         if ($search = $data['search'] ?? null) {
                             $query->where(function ($q) use ($search) {
                                 // Filter by either department ID or name
-                                $q->where('id', 'like', "%{$search}%")
-                                    ->orWhere('name', 'like', "%{$search}%");
+                                $q->where('name', 'like', "%{$search}%");
                             });
                         }
                     }),
             ])
             ->actions([  // Define actions that can be taken on a record in the table
+
+                // Action to view contract details
+                Tables\Actions\Action::make('view')
+                    ->label('View')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn ($record) => route('filament.admin.resources.departments.view', $record->id))
+                    ->openUrlInNewTab(),
 
                 // Action to edit a department record
                 Tables\Actions\EditAction::make(),
@@ -117,13 +117,15 @@ class DepartmentResource extends Resource
     {
         return [
             // Route to the list page
-            'index' => Pages\ListDepartments::route('/'),
+            'index' => Pages\ListDepartment::route('/'),
 
             // Route to the create page
             'create' => Pages\CreateDepartment::route('/create'),
 
             // Route to the edit page
             'edit' => Pages\EditDepartment::route('/{record}/edit'),
+            // Route to view a department
+            'view' => Pages\ViewDepartment::route('/{record}/view'), 
         ];
     }
 }
