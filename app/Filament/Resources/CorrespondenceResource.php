@@ -42,24 +42,24 @@ class CorrespondenceResource extends Resource
                 Forms\Components\TextInput::make('subject')
                     ->required(), // The subject is a required field
 
-                    // Select field for the user who created the correspondence
+                // Select field for the user who created the correspondence
                 Forms\Components\Select::make('created_by')
-                ->label('Created By User')
-                ->relationship('creator', 'name') // Relationship to the creator model (displays user names)
-                ->searchable() // Allow searching for users
-                ->required(), // The creator is a required field
+                    ->label('Created By User')
+                    ->relationship('creator', 'name') // Ensure 'name' is a valid string in the related model
+                    ->searchable() // Allow searching for users
+                    ->required(), // The creator is a required field
 
                 // Select field for sender department
                 Forms\Components\Select::make('sender_department_id')
                     ->label('Sender Department')
-                    ->relationship('senderDepartment', 'name') // Relationship to the senderDepartment model (displays department names)
+                    ->relationship('senderDepartment', 'name') // Ensure 'name' is a valid string in the related model
                     ->searchable() // Allow searching for departments
                     ->required(), // The sender department is a required field
 
                 // Select field for receiver department
                 Forms\Components\Select::make('receiver_department_id')
                     ->label('Receiver Department')
-                    ->relationship('receiverDepartment', 'name') // Relationship to the receiverDepartment model (displays department names)
+                    ->relationship('receiverDepartment', 'name') // Ensure 'name' is a valid string in the related model
                     ->searchable() // Allow searching for departments
                     ->required(), // The receiver department is a required field
 
@@ -75,17 +75,17 @@ class CorrespondenceResource extends Resource
                     
                 // Select field for type of correspondence 
                 Forms\Components\Select::make('type')
-                ->options([
-                    'email' => 'Email',
-                    'letter' => 'Letter',
-                    'fax' => 'Fax',
-                    'memo' => 'Memo',
-                    'report' => 'Report',
-                    'notification' => 'Notification',
-                    'circular' => 'Circular',
-                    'invoice' => 'Invoice',
-                    'other' => 'Other',
-                ]),
+                    ->options([
+                        'email' => 'Email',
+                        'letter' => 'Letter',
+                        'fax' => 'Fax',
+                        'memo' => 'Memo',
+                        'report' => 'Report',
+                        'notification' => 'Notification',
+                        'circular' => 'Circular',
+                        'invoice' => 'Invoice',
+                        'other' => 'Other',
+                    ]), // Ensure all labels are valid strings
 
                 // File upload field for correspondence files
                 Forms\Components\FileUpload::make('file'),
@@ -159,19 +159,18 @@ class CorrespondenceResource extends Resource
             ])
             ->filters([ // Define filters to filter the data in the table
 
-                // Search filter to filter by subject, ID, number, sender, or receiver department name
+                // Search filter to filter by subject, ID, sender, or receiver department name
                 Tables\Filters\Filter::make('search')  
                     ->form([
                         Forms\Components\TextInput::make('search')
-                            ->label('Search for subject or id or number or senderDepartment Name or receiverDepartment name')
-                            ->placeholder('subject or id or number or senderDepartment Name or receiverDepartment name'),
+                            ->label('Search for subject or id or senderDepartment Name or receiverDepartment name')
+                            ->placeholder('subject or id or senderDepartment Name or receiverDepartment name'),
                     ])
                     ->query(function (Builder $query, array $data) {
                         if ($search = $data['search'] ?? null) {
                             $query->where(function ($q) use ($search) {
                                 $q->where('id', 'like', "%{$search}%")
                                     ->orWhere('subject', 'like', "%{$search}%")
-                                    ->orWhere('number', 'like', "%{$search}%")
                                     ->orWhereHas('senderDepartment', function ($q) use ($search) {
                                         $q->where('name', 'like', "%{$search}%");
                                     })

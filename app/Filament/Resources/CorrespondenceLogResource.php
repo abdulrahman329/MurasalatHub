@@ -47,9 +47,9 @@ class CorrespondenceLogResource extends Resource
 
                 // Field to select a correspondence (Select field with options from the Correspondence model)
                 Select::make('correspondence_id') 
-                    ->label('Correspondence Number')
+                    ->label('Correspondence ID')
                     ->options(
-                        Correspondence::all()->pluck('number', 'id') // Get all correspondence numbers and IDs
+                        Correspondence::pluck('id', 'id') // Use 'id' as both the key and label
                     )
                     ->searchable() // Allow searching in the dropdown
                     ->required(), // Make this field required
