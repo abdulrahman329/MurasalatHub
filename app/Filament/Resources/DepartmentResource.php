@@ -118,12 +118,6 @@ class DepartmentResource extends Resource
         return [
             // Route to the list page
             'index' => Pages\ListDepartment::route('/'),
-
-            // Route to the create page
-            'create' => Pages\CreateDepartment::route('/create'),
-
-            // Route to the edit page
-            'edit' => Pages\EditDepartment::route('/{record}/edit'),
             // Route to view a department
             'view' => Pages\ViewDepartment::route('/{record}/view'), 
         ];

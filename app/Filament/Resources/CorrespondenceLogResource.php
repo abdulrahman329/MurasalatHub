@@ -38,21 +38,15 @@ class CorrespondenceLogResource extends Resource
     {
         return $form
             ->schema([
-                // Field to select a user (BelongsTo relationship)
-                BelongsToSelect::make('user_id') 
-                    ->relationship('user', 'name') // Shows user names in the dropdown (uses the 'name' attribute of the User model)
-                    ->label('User') // Label for this field
-                    ->searchable() // Allow searching for users by name
-                    ->required(), // Make this field required
+                // Automatically set the user_id to the currently authenticated user and hide the field
+                Forms\Components\TextInput::make('user_id')
+                    ->default(fn () => auth()->id())
+                    ->required(),
 
-                // Field to select a correspondence (Select field with options from the Correspondence model)
-                Select::make('correspondence_id') 
-                    ->label('Correspondence ID')
-                    ->options(
-                        Correspondence::pluck('id', 'id') // Use 'id' as both the key and label
-                    )
-                    ->searchable() // Allow searching in the dropdown
-                    ->required(), // Make this field required
+                    
+                // Automatically set the correspondence_id if provided in the request, otherwise leave empty
+                Forms\Components\TextInput::make('correspondence_id')
+                ->required(), // Make this field required
 
                 // Text input field for action (e.g., action taken on the correspondence)
                 Forms\Components\TextInput::make('action')
@@ -95,11 +89,6 @@ class CorrespondenceLogResource extends Resource
                 TextColumn::make('note')
                     ->label('Note')
                     ->limit(50), // Limit the displayed note length to 50 characters
-                
-                // Display the timestamp of when the log was created
-                TextColumn::make('created_at')
-                    ->label('Created At')
-                    ->sortable(), // Allow sorting by creation date
             ])
             ->filters([
                 // Custom filter to filter by correspondence ID using a text input
@@ -130,16 +119,8 @@ class CorrespondenceLogResource extends Resource
                     ->icon('heroicon-o-eye')
                     ->url(fn ($record) => route('filament.admin.resources.correspondence-logs.view', $record->id))
                     ->openUrlInNewTab(),
-
-                // Action buttons to edit or delete individual correspondence logs
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
-                // Bulk action to delete multiple correspondence logs at once
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
             ]);
     }
 
@@ -155,6 +136,12 @@ class CorrespondenceLogResource extends Resource
         ];
     }
 
+    public static function canCreate(): bool
+{
+    return false;  // Disables the "New" button
+}
+
+
     /**
      * Define the pages for listing, creating, and editing correspondence logs.
      * 
@@ -166,9 +153,9 @@ class CorrespondenceLogResource extends Resource
             // Route to the list page
             'index' => Pages\ListCorrespondenceLog::route('/'),
             // Route to the create page
-            'create' => Pages\CreateCorrespondenceLog::route('/create'),
+            //'create' => Pages\CreateCorrespondenceLog::route('/create'),
             // Route to the edit page
-            'edit' => Pages\EditCorrespondenceLog::route('/{record}/edit'),
+            //'edit' => Pages\EditCorrespondenceLog::route('/{record}/edit'),
             // Route to view a specific correspondence log
             'view' => Pages\ViewCorrespondenceLog::route('/{record}/view'), 
         ];

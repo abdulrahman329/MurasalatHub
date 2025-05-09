@@ -164,8 +164,8 @@ class UserResource extends Resource
     {
         return [
             'index' => Pages\ListUser::route('/'),  // The page for listing all users
-            'create' => Pages\CreateUser::route('/create'),  // The page for creating a new user
-            'edit' => Pages\EditUser::route('/{record}/edit'),  // The page for editing a user
+            //'create' => Pages\CreateUser::route('/create'),  // The page for creating a new user
+            //'edit' => Pages\EditUser::route('/{record}/edit'),  // The page for editing a user
             'view' => Pages\ViewUser::route('/{record}/view'),  // The page for viewing a user's details
         ];
     }

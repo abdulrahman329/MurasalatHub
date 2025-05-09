@@ -17,7 +17,9 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Hidden;
 use Filament\Tables\Columns\TextColumn;
+use App\Models\Correspondence_log;
 
 class CorrespondenceResource extends Resource
 {
@@ -42,19 +44,15 @@ class CorrespondenceResource extends Resource
                 Forms\Components\TextInput::make('subject')
                     ->required(), // The subject is a required field
 
-                // Select field for the user who created the correspondence
-                Forms\Components\Select::make('created_by')
-                    ->label('Created By User')
-                    ->relationship('creator', 'name') // Ensure 'name' is a valid string in the related model
-                    ->searchable() // Allow searching for users
-                    ->required(), // The creator is a required field
+                    // Hidden field for user_id, auto-filled from the authenticated user
+                    Forms\Components\Hidden::make('created_by')
+                    ->default(fn () => auth()->id())
+                        ->required(),
 
-                // Select field for sender department
-                Forms\Components\Select::make('sender_department_id')
-                    ->label('Sender Department')
-                    ->relationship('senderDepartment', 'name') // Ensure 'name' is a valid string in the related model
-                    ->searchable() // Allow searching for departments
-                    ->required(), // The sender department is a required field
+                    // Hidden field for sender_department_id, auto-filled from the authenticated user (with fallback)
+                    Forms\Components\Hidden::make('sender_department_id')
+                        ->default(fn () => auth()->user()?->department_id)
+                        ->required(),
 
                 // Select field for receiver department
                 Forms\Components\Select::make('receiver_department_id')
@@ -63,15 +61,9 @@ class CorrespondenceResource extends Resource
                     ->searchable() // Allow searching for departments
                     ->required(), // The receiver department is a required field
 
-                // Select field for status (Pending, Approved, Rejected)
-                Forms\Components\Select::make('status')
-                    ->options([ // Status options
-                        'pending' => 'Pending',
-                        'approved' => 'Approved',
-                        'rejected' => 'Rejected',
-                    ])
-                    ->default('Pending') // Default status is Pending
-                    ->required(), // Status is a required field
+                    // Hidden field for status, auto-filled to 'pending'
+                    Forms\Components\Hidden::make('status')
+                        ->default('pending'),
                     
                 // Select field for type of correspondence 
                 Forms\Components\Select::make('type')
@@ -87,11 +79,11 @@ class CorrespondenceResource extends Resource
                         'other' => 'Other',
                     ]), // Ensure all labels are valid strings
 
+                    // Textarea for notes related to the correspondence
+                Forms\Components\Textarea::make('notes'),
+
                 // File upload field for correspondence files
                 Forms\Components\FileUpload::make('file'),
-
-                // Textarea for notes related to the correspondence
-                Forms\Components\Textarea::make('notes'),
             ]);
     }
 
@@ -107,21 +99,30 @@ class CorrespondenceResource extends Resource
             ->columns([ // Define the columns displayed in the table
 
                 // Display the subject of the correspondence
-                TextColumn::make('subject'),
+                TextColumn::make('subject')
+                ->searchable(),  // Make the select input searchable
+
 
                 // Display any additional notes related to the correspondence
                 TextColumn::make('notes'),
-
+                
                 // Display the sender's department name
                 TextColumn::make('senderDepartment.name')
-                    ->label('Sender Department'),
+                    ->label('Sender Department')
+                    ->searchable()  // Make the select input searchable
+                    ->sortable(), // Allow sorting by sender department name
 
                 // Display the receiver's department name
                 TextColumn::make('receiverDepartment.name')
-                    ->label('Receiver Department'),
+                    ->label('Receiver Department')
+                    ->searchable()  // Make the select input searchable
+                    ->sortable(), // Allow sorting by Receiver department name
 
                 // Display the type of correspondence (email, letter, or fax)
-                TextColumn::make('type'),
+                TextColumn::make('type')
+                    ->label('Type')
+                    ->searchable()  // Make the select input searchable
+                    ->sortable(), // Allow sorting by Type
 
                     TextColumn::make('file')  // File column
                     ->label('File')
@@ -138,6 +139,7 @@ class CorrespondenceResource extends Resource
                 // Display the status of the correspondence (Pending, Approved, Rejected)
                 TextColumn::make('status')
                     ->label('Status')
+                    ->searchable()  // Make the select input searchable
                     ->sortable() // Allow sorting by status
                     ->getStateUsing(function ($record) {
                         // Example: Show an icon or text based on status
@@ -155,7 +157,10 @@ class CorrespondenceResource extends Resource
 
                 // Display the name of the user who created the correspondence
                 TextColumn::make('creator.name')
-                    ->label('Created By'),
+                    ->label('Created By')
+                    ->searchable()  // Make the select input searchable
+                    ->sortable(), // Allow sorting by creator name
+                    
             ])
             ->filters([ // Define filters to filter the data in the table
 
@@ -180,14 +185,7 @@ class CorrespondenceResource extends Resource
                             });
                         }
                     }),
-
-                // Filter by correspondence type (email, letter, fax)
-                Tables\Filters\SelectFilter::make('type')
-                    ->options([ // Options for the filter
-                        'email' => 'Email',
-                        'letter' => 'Letter',
-                        'fax' => 'Fax',
-                    ]),
+                    
 
                 // Filter by correspondence status (Pending, Approved, Rejected)
                 Tables\Filters\SelectFilter::make('status')
@@ -202,64 +200,57 @@ class CorrespondenceResource extends Resource
                     ->label('Created By User')
                     ->relationship('creator', 'name') // Relationship to the creator model
                     ->searchable(), // Allow searching for users
-
             ])
             ->actions([ // Define actions for each record in the table
-                
-                // Custom action to view details of a correspondence record
-                Tables\Actions\Action::make('view')
-                    ->label('View')
-                    ->url(fn ($record) => route('filament.admin.resources.correspondences.view', $record->id))
-                    ->icon('heroicon-o-eye'),
+                Tables\Actions\ActionGroup::make([
+                    // Custom action to view details of a correspondence record
+                    Tables\Actions\Action::make('view')
+                        ->label('View')
+                        ->url(fn ($record) => route('filament.admin.resources.correspondences.view', $record->id))
+                        ->icon('heroicon-o-eye'),
 
-                // Action to edit a correspondence record
-                Tables\Actions\EditAction::make(),
+                    // Action to edit a correspondence record
+                    Tables\Actions\EditAction::make(),
 
-                // Action to delete a correspondence record
-                Tables\Actions\DeleteAction::make(),
+                    // Action to delete a correspondence record
+                    Tables\Actions\DeleteAction::make(),
+                    // Action to mark a single correspondence as Approved
+                    Tables\Actions\Action::make('markAsApproved')
+                        ->label('Mark as Approved')
+                        ->action(function ($record) {
+                            $record->update(['status' => 'approved']);
+                            
+                            // Find the existing CorrespondenceLog and update it
+                            $log = Correspondence_log::where('correspondence_id', $record->id)->first();
+                            if ($log) {
+                                $log->update([
+                                    'action' => 'approved',
+                                ]);
+                            }
+                        })
+                        ->requiresConfirmation()
+                        ->color('success'),
+                    // Action to mark a single correspondence as Rejected
+                    Tables\Actions\Action::make('markAsRejected')
+                        ->label('Mark as Rejected')
+                        ->action(function ($record) {
+                            $record->update(['status' => 'rejected']);
+                            
+                            // Find the existing CorrespondenceLog and update it
+                            $log = Correspondence_log::where('correspondence_id', $record->id)->first();
+                            if ($log) {
+                                $log->update([
+                                    'action' => 'rejected',
+                                ]);
+                            }
+                        })
+                        ->requiresConfirmation()
+                        ->color('danger'),
+                ]),
             ])
             ->bulkActions([ // Define bulk actions for multiple records
-
-                // Bulk delete action for selected records
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-
-                    // Bulk action to mark selected correspondences as Pending
-                    Tables\Actions\BulkAction::make('markAsPending')
-                        ->label('Mark as Pending')
-                        ->action(function ($records) {
-                            $ids = $records->pluck('id')->toArray(); // Get the IDs of the selected records
-                            Correspondence::whereIn('id', $ids)->update(['status' => 'pending']); // Update the status to "pending"
-                        })
-                        ->requiresConfirmation() // Require confirmation before executing the action
-                        ->color('warning'), // Set the color to warning
-
-                    // Bulk action to mark selected correspondences as Approved
-                    Tables\Actions\BulkAction::make('markAsApproved')
-                        ->label('Mark as Approved')
-                        ->action(function ($records) {
-                            $ids = $records->pluck('id')->toArray(); // Get the IDs of the selected records
-                            Correspondence::whereIn('id', $ids)->update(['status' => 'approved']); // Update the status to "approved"
-                        })
-                        ->requiresConfirmation() // Require confirmation before executing the action
-                        ->color('success'), // Set the color to success
-
-                    // Bulk action to mark selected correspondences as Rejected
-                    Tables\Actions\BulkAction::make('markAsRejected')
-                        ->label('Mark as Rejected')
-                        ->action(function ($records) {
-                            $ids = $records->pluck('id')->toArray(); // Get the IDs of the selected records
-                            Correspondence::whereIn('id', $ids)->update(['status' => 'rejected']); // Update the status to "rejected"
-                        })
-                        ->requiresConfirmation() // Require confirmation before executing the action
-                        ->color('danger'), // Set the color to danger
-
-                    // Bulk action to export selected correspondences
-                    Tables\Actions\BulkAction::make('export')
-                        ->label('Export Selected')
-                        ->action(function ($records) {
-                            // Export logic here
-                        })
                 ]),
             ]);
     }
@@ -286,15 +277,12 @@ class CorrespondenceResource extends Resource
         return [
             // Route to the list page
             'index' => Pages\ListCorrespondence::route('/'),
-
-            // Route to the create page
-            'create' => Pages\CreateCorrespondence::route('/create'),
-
-            // Route to the edit page
-            'edit' => Pages\EditCorrespondence::route('/{record}/edit'),
+            'edit' => Pages\EditCorrespondence::route('/{record}/edit'), // Route to edit a correspondence
+            'create' => Pages\CreateCorrespondence::route('/create'), // Route to create a new correspondence
             
             // Route to view a specific correspondence 
             'view' => Pages\ViewCorrespondence::route('/{record}/view'),
         ];
     }
+
 }
