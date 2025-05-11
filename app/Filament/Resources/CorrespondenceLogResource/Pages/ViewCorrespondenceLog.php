@@ -4,16 +4,9 @@ namespace App\Filament\Resources\CorrespondenceLogResource\Pages;
 
 use App\Filament\Resources\CorrespondenceLogResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ViewRecord;
 
-class ListCorrespondenceLogs extends ListRecords
+class ViewCorrespondenceLog extends ViewRecord
 {
     protected static string $resource = CorrespondenceLogResource::class;
-
-    protected function getHeaderActions(): array
-    {
-        return [
-            Actions\CreateAction::make(),
-        ];
-    }
 }
