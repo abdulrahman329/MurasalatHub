@@ -40,6 +40,8 @@ class AdminPanelProvider extends PanelProvider
                 Widgets\AccountWidget::class,
                 Widgets\FilamentInfoWidget::class,
             ])
+                ->collapsibleNavigationGroups(false)
+            
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

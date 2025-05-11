@@ -3,169 +3,113 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
-use App\Filament\Resources\UserResource\RelationManagers;
-use App\Models\User;  
-use Filament\Forms; 
+use App\Models\User;
+use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Forms\Components\TextInput;  
-use Filament\Forms\Components\DateTimePicker;
-use Filament\Resources\Resource;  
-use Filament\Tables;  
+use Filament\Resources\Resource;
+use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Tables\Columns\TextColumn;  
-use Filament\Forms\Components\Select;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class UserResource extends Resource
 {
-    // The model this resource will interact with
     protected static ?string $model = User::class;
 
-    // The icon to show in the Filament navigation sidebar
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-user';
+    protected static ?string $navigationLabel = 'المستخدمون';
+    protected static ?string $modelLabel = 'مستخدم';
+    protected static ?string $pluralModelLabel = 'المستخدمون';
 
-    /**
-     * Define the form schema for creating or updating a User.
-     *
-     * @param Form $form
-     * @return Form
-     */
+    protected static ?string$navigationGroup = "إعدادات النظام";
+
+
+
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([  // Define the schema for the form fields
+        return $form->schema([
+            Forms\Components\TextInput::make('name')
+                ->label('اسم المستخدم')
+                ->required(),
 
-                // TextInput for the user's name, which is required
-                Forms\Components\TextInput::make('name')
-                    ->required(),  // Name is a required field
+            Forms\Components\TextInput::make('email')
+                ->label('البريد الإلكتروني')
+                ->email()
+                ->required(),
 
-                // TextInput for email, which is required and must be a valid email
-                Forms\Components\TextInput::make('email')
-                    ->email()  // This will validate the field as an email
-                    ->required(),  // Email is a required field
+            Forms\Components\TextInput::make('password')
+                ->label('كلمة المرور')
+                ->password()
+                ->required(),
 
-                // TextInput for password, which is required and will mask input
-                Forms\Components\TextInput::make('password')
-                    ->password()  // The password field will mask input
-                    ->required(),  // Password is a required field
-
-                // Select input for department, which is required
-                Select::make('Department_id')
-                    ->label('Department name')  // Label for the department field
-                    ->relationship('department', 'name')  // Relationship to the 'department' model
-                    ->searchable()  // Make the select input searchable
-                    ->required(),  // Department is a required field
-
-                // TextInput for current_team_id (nullable, not required)
-                Forms\Components\TextInput::make('current_team_id'),
-
-                // TextInput for profile_photo_path (nullable, not required)
-                Forms\Components\TextInput::make('profile_photo_path'),
-            ]);
+            Forms\Components\Select::make('department_id')
+                ->label('القسم')
+                ->relationship('department', 'name')
+                ->searchable()
+                ->required(),
+        ]);
     }
 
-    /**
-     * Define the table schema, which will display user data in a tabular format.
-     *
-     * @param Table $table
-     * @return Table
-     */
     public static function table(Table $table): Table
     {
         return $table
-            ->columns([  // Define the columns to be displayed in the table
+            ->columns([
+                Tables\Columns\TextColumn::make('id')
+                    ->label('المعرف'),
 
-                // Display the user's ID
-                Tables\Columns\TextColumn::make('id'),
+                Tables\Columns\TextColumn::make('name')
+                    ->label('اسم المستخدم'),
 
-                // Display the user's name
-                Tables\Columns\TextColumn::make('name'),
+                Tables\Columns\TextColumn::make('email')
+                    ->label('البريد الإلكتروني'),
 
-                // Display the user's email
-                Tables\Columns\TextColumn::make('email'),
-
-                // Display the department name related to the user
                 Tables\Columns\TextColumn::make('department.name')
-                    ->label('Department'),
+                    ->label('القسم'),
 
-                // Hide the password and remember_token fields (sensitive information)
-                Tables\Columns\TextColumn::make('password')->hidden(),
-                Tables\Columns\TextColumn::make('remember_token')->hidden(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('تاريخ الإنشاء')
+                    ->dateTime(),
 
-                // Display created_at and updated_at as datetime columns
-                Tables\Columns\TextColumn::make('created_at')->dateTime(),
-                Tables\Columns\TextColumn::make('updated_at')->dateTime(),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('تاريخ التحديث')
+                    ->dateTime(),
             ])
-            ->filters([  // Define filters available for the table
-
-                // Search filter that allows searching by user ID, name, or email
+            ->filters([
                 Tables\Filters\Filter::make('search')
-                    ->form([  // Define the search form input field
+                    ->form([
                         Forms\Components\TextInput::make('search')
-                            ->label('Search for id or name or email')  // Label for the search field
-                            ->placeholder('id or name or email'),  // Placeholder text
+                            ->label('ابحث')
+                            ->placeholder('المعرف أو الاسم أو البريد الإلكتروني'),
                     ])
-                    ->query(function (Builder $query, array $data) {  // Query to filter users based on search input
+                    ->query(function (Builder $query, array $data) {
                         if ($search = $data['search'] ?? null) {
                             $query->where(function ($q) use ($search) {
-                                // Filter by user ID, name, email, or department name
                                 $q->where('id', 'like', "%{$search}%")
                                     ->orWhere('name', 'like', "%{$search}%")
-                                    ->orWhere('email', 'like', "%{$search}%")
-                                    ->orWhereHas('department', function ($q) use ($search) {
-                                        $q->where('name', 'like', "%{$search}%");
-                                    });
+                                    ->orWhere('email', 'like', "%{$search}%");
                             });
                         }
                     }),
-
-                // A filter for selecting users by department
-                Tables\Filters\SelectFilter::make('department_id')
-                    ->label('Department')
-                    ->relationship('department', 'name')  // Link to the 'department' relationship and show 'name'
-                    ->searchable(),  // Make the department filter searchable
             ])
-            ->actions([  // Define actions that can be taken on a record
-
-                // Action to edit a user record
-                Tables\Actions\EditAction::make(),
-
-                // Action to delete a user record
-                Tables\Actions\DeleteAction::make(),
+            ->actions([
+                Tables\Actions\EditAction::make()
+                    ->label('تعديل'),
+                Tables\Actions\DeleteAction::make()
+                    ->label('حذف'),
             ])
-            ->bulkActions([  // Define bulk actions for multiple records
-
-                // Bulk action to delete multiple user records
+            ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),  // Bulk delete action
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->label('حذف جماعي'),
                 ]),
             ]);
     }
 
-    /**
-     * Define the relations for this resource (if any).
-     *
-     * @return array
-     */
-    public static function getRelations(): array
-    {
-        return [
-            // Define relationships to other resources if needed (none used here)
-        ];
-    }
-
-    /**
-     * Define the pages for this resource (index, create, and edit).
-     *
-     * @return array
-     */
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUsers::route('/'),  // The page for listing all users
-            'create' => Pages\CreateUser::route('/create'),  // The page for creating a new user
-            'edit' => Pages\EditUser::route('/{record}/edit'),  // The page for editing a user
+            'index' => Pages\ListUsers::route('/'),
+            'create' => Pages\CreateUser::route('/create'),
+            'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
     }
 }
