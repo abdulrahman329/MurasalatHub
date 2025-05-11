@@ -24,6 +24,7 @@ class Contract extends Model
         'start_date', // The start date of the contract
         'end_date', // The end date of the contract
         'contract_type', // The type of the contract (e.g., service, employment)
+        'party_name', // The name of the other party involved in the contract
         'file', // File attachment associated with the contract
         'responsible_user_id', // Foreign key linking to the user responsible for the contract
     ];

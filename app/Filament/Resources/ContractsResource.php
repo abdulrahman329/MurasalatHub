@@ -4,18 +4,8 @@ namespace App\Filament\Resources;
 
 use Filament\Forms\Components\{TextInput, DatePicker, FileUpload, Select};
 use Filament\Tables\Columns\{TextColumn};
-use Filament\Tables\Actions\{EditAction, DeleteBulkAction};
-use Filament\Tables\Filters;
-use Filament\Tables\Filters\DateFilter;
-use Filament\Tables\Actions\BulkActionGroup;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\BulkAction;
-use Filament\Tables\Actions\ActionGroup;
-use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\{EditAction, DeleteBulkAction, DeleteAction, BulkActionGroup};
 use App\Filament\Resources\ContractsResource\Pages\{ListContracts, CreateContracts, EditContracts};
-use App\Filament\Resources\ContractsResource\Pages;
-use App\Filament\Resources\ContractsResource\RelationManagers;
-use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -38,53 +28,74 @@ class ContractsResource extends Resource
 
     public static function form(Form $form): Form
     {
-        return $form->schema([  // Define the fields for the contract form
-            TextInput::make('title')->required(),  // Title of the contract (required)
+        return $form->schema([
+            TextInput::make('title')
+                ->label('عنوان العقد')
+                ->required(),
 
-            TextInput::make('contract_type')->required(),  // Type of contract (required)
-    
-            TextInput::make('party_name')->required(),  // Name of the contracting party (required)
+            TextInput::make('contract_type')
+                ->label('نوع العقد')
+                ->required(),
 
-            Select::make('responsible_user_id')  // Select input for the responsible user
-                ->label('Responsible User')
-                ->relationship('responsibleUser', 'name')  // Relationship to the 'responsibleUser' model
-                ->searchable()  // Make the select input searchable
-                ->required(),  // The responsible user is a required field
+            TextInput::make('party_name')
+                ->label('اسم الطرف المتعاقد')
+                ->required(),
 
-                DatePicker::make('start_date')  // Start date of the contract
+            Select::make('responsible_user_id')
+                ->label('المسؤول')
+                ->relationship('responsibleUser', 'name')
+                ->searchable()
+                ->required(),
+
+            DatePicker::make('start_date')
+                ->label('تاريخ البدء')
                 ->required()
-                ->before('end_date'),  // Ensure that start date is before the end date
+                ->before('end_date'),
 
-            DatePicker::make('end_date')  // End date of the contract
+            DatePicker::make('end_date')
+                ->label('تاريخ الانتهاء')
                 ->required()
-                ->after('start_date'),  // Ensure that end date is after the start date
-        
-            FileUpload::make('file')  // File upload for attaching the contract file
-                ->directory('contracts')  // Store the file in the 'contracts' folder
-                ->acceptedFileTypes(['application/pdf', 'image/*'])  // Accept PDF and image files
-                ->maxSize(10240),  // Limit file size to 10MB
+                ->after('start_date'),
+
+            FileUpload::make('file')
+                ->label('الملف')
+                ->directory('contracts')
+                ->acceptedFileTypes(['application/pdf', 'image/*'])
+                ->maxSize(10240),
         ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->columns([  // Define the columns for the contracts table
-                TextColumn::make('title')->sortable()->searchable(),  // Title column, sortable and searchable
-                TextColumn::make('responsibleUser.name')->label('Responsible'),  // Responsible user column
-                TextColumn::make('contract_type'),  // Contract type column
-                TextColumn::make('party_name'),  // Party name column
-                TextColumn::make('file')  // File column
-                    ->label('File')
-                    ->formatStateUsing(function ($state) {  // Custom formatting for the file column
-                        if ($state === null) {
-                            return '❌ No File';  // No file uploaded
-                        } else if (isset($state)) {
-                            return '✅ File ';  // File uploaded
-                        }
-                    }),                
-                TextColumn::make('start_date')->sortable()->date(),  // Start date column, sortable and displayed as date
-                TextColumn::make('end_date')->sortable()->date(),  // End date column, sortable and displayed as date   
+            ->columns([
+                TextColumn::make('title')
+                    ->label('عنوان العقد')
+                    ->sortable()
+                    ->searchable(),
+
+                TextColumn::make('responsibleUser.name')
+                    ->label('المسؤول'),
+
+                TextColumn::make('contract_type')
+                    ->label('نوع العقد'),
+
+                TextColumn::make('party_name')
+                    ->label('اسم الطرف'),
+
+                TextColumn::make('file')
+                    ->label('الملف')
+                    ->formatStateUsing(fn ($state) => $state ? '✅ يوجد ملف' : '❌ لا يوجد ملف'),
+
+                TextColumn::make('start_date')
+                    ->label('تاريخ البدء')
+                    ->sortable()
+                    ->date(),
+
+                TextColumn::make('end_date')
+                    ->label('تاريخ الانتهاء')
+                    ->sortable()
+                    ->date(),
             ])
             ->filters([
                 Tables\Filters\Filter::make('search')
@@ -126,9 +137,9 @@ class ContractsResource extends Resource
                     ->relationship('responsibleUser', 'name')
                     ->searchable(),
             ])
-            ->actions([  // Define actions that can be performed on individual records
-                Tables\Actions\EditAction::make(),  // Action to edit a contract
-                Tables\Actions\DeleteAction::make(),  // Action to delete a contract
+            ->actions([
+                EditAction::make()->label('تعديل'),
+                DeleteAction::make()->label('حذف'),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
@@ -145,20 +156,9 @@ class ContractsResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListContracts::route('/'),  // List page for contracts
-            'create' => Pages\CreateContracts::route('/create'),  // Create page for new contracts
-            'edit' => Pages\EditContracts::route('/{record}/edit'),  // Edit page for editing existing contracts
+            'index' => ListContracts::route('/'),
+            'create' => CreateContracts::route('/create'),
+            'edit' => EditContracts::route('/{record}/edit'),
         ];
     }
-
-    public static function getModelLabel(): string
-{
-    return __('عقد');
-}
-
-public static function getPluralModelLabel(): string
-{
-    return __('عقود');
-}
-
 }

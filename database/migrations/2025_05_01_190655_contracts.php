@@ -17,6 +17,7 @@ return new class extends Migration
             $table->date('start_date'); // Start date of the contract
             $table->date('end_date'); // End date of the contract
             $table->string('contract_type'); // Type of the contract (e.g., service, employment)
+            $table->string('party_name'); // Name of the party involved in the contract
             $table->string('file')->nullable(); // Optional file attachment
             $table->foreignId('responsible_user_id') // Foreign key linking to the 'users' table
                   ->constrained('users')

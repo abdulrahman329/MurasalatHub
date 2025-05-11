@@ -40,41 +40,35 @@ class DepartmentResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->columns([ // Define the columns displayed in the table
-
-                // Display the department ID (sortable)
+            ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
+                    ->label('المعرف')
                     ->sortable(),
 
                 TextColumn::make('name')
-                    ->sortable()  // Allows sorting by name
-                    ->searchable(), // Allows searching by department name
+                    ->label('اسم القسم')
+                    ->sortable()
+                    ->searchable(),
             ])
             ->filters([
                 Tables\Filters\Filter::make('search')
                     ->form([
                         Forms\Components\TextInput::make('search')
-                            ->label('Search for name or id')  // Label for the search field
-                            ->placeholder('name or department id'),  // Placeholder text
+                            ->label('ابحث بالمعرف أو الاسم')
+                            ->placeholder('اسم القسم أو المعرف'),
                     ])
                     ->query(function (Builder $query, array $data) {
                         if ($search = $data['search'] ?? null) {
                             $query->where(function ($q) use ($search) {
-                                // Filter by either department ID or name
                                 $q->where('id', 'like', "%{$search}%")
-                                    ->orWhere('name', 'like', "%{$search}%");
+                                  ->orWhere('name', 'like', "%{$search}%");
                             });
                         }
                     }),
             ])
-            ->actions([  // Define actions that can be taken on a record in the table
-
-                // Action to edit a department record
-                Tables\Actions\EditAction::make(),
-
-                // Action to delete a department record
-                Tables\Actions\DeleteAction::make(),
+            ->actions([
+                Tables\Actions\EditAction::make()->label('تعديل'),
+                Tables\Actions\DeleteAction::make()->label('حذف'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -91,13 +85,8 @@ class DepartmentResource extends Resource
     public static function getPages(): array
     {
         return [
-            // Route to the list page
             'index' => Pages\ListDepartments::route('/'),
-
-            // Route to the create page
             'create' => Pages\CreateDepartment::route('/create'),
-
-            // Route to the edit page
             'edit' => Pages\EditDepartment::route('/{record}/edit'),
         ];
     }

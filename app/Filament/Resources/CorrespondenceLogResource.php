@@ -35,21 +35,19 @@ class CorrespondenceLogResource extends Resource
     {
         return $form
             ->schema([
-                // Field to select a user (BelongsTo relationship)
-                BelongsToSelect::make('user_id') 
-                    ->relationship('user', 'name') // Shows user names in the dropdown (uses the 'name' attribute of the User model)
-                    ->label('User') // Label for this field
-                    ->searchable() // Allow searching for users by name
-                    ->required(), // Make this field required
+                BelongsToSelect::make('user_id')
+                    ->relationship('user', 'name')
+                    ->label('أنشأ بواسطة')
+                    ->searchable()
+                    ->required(),
 
-                // Field to select a correspondence (Select field with options from the Correspondence model)
-                Select::make('correspondence_id') 
-                    ->label('Correspondence Number')
+                Select::make('correspondence_id')
+                    ->label('رقم المراسلة')
                     ->options(
-                        Correspondence::all()->pluck('number', 'id') // Get all correspondence numbers and IDs
+                        Correspondence::all()->pluck('number', 'id')
                     )
-                    ->searchable() // Allow searching in the dropdown
-                    ->required(), // Make this field required
+                    ->searchable()
+                    ->required(),
 
                 Forms\Components\TextInput::make('action')
                     ->label('الإجراء')
@@ -78,13 +76,12 @@ class CorrespondenceLogResource extends Resource
                     ->searchable(),
 
                 TextColumn::make('note')
-                    ->label('Note')
-                    ->limit(50), // Limit the displayed note length to 50 characters
-                
-                // Display the timestamp of when the log was created
+                    ->label('الملاحظة')
+                    ->limit(50),
+
                 TextColumn::make('created_at')
-                    ->label('Created At')
-                    ->sortable(), // Allow sorting by creation date
+                    ->label('تاريخ الإنشاء')
+                    ->sortable(),
             ])
             ->filters([
                 Tables\Filters\Filter::make('correspondence_id')
@@ -104,14 +101,12 @@ class CorrespondenceLogResource extends Resource
                     ->searchable(),
             ])
             ->actions([
-                // Action buttons to edit or delete individual correspondence logs
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()->label('تعديل'),
+                Tables\Actions\DeleteAction::make()->label('حذف'),
             ])
             ->bulkActions([
-                // Bulk action to delete multiple correspondence logs at once
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()->label('حذف جماعي'),
                 ]),
             ]);
     }
@@ -121,20 +116,11 @@ class CorrespondenceLogResource extends Resource
         return [];
     }
 
-    public static function canCreate(): bool
-{
-    return false;  // Disables the "New" button
-}
-
-
     public static function getPages(): array
     {
         return [
-            // Route to the list page
             'index' => Pages\ListCorrespondenceLogs::route('/'),
-            // Route to the create page
             'create' => Pages\CreateCorrespondenceLog::route('/create'),
-            // Route to the edit page
             'edit' => Pages\EditCorrespondenceLog::route('/{record}/edit'),
         ];
     }

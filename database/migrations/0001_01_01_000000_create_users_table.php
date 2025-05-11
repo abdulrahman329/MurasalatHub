@@ -18,7 +18,12 @@ return new class extends Migration
             $table->foreign('department_id')->references('id')->on('departments')->onDelete('set null'); // Set department_id to null if the department is deleted
             $table->string('name'); // Name of the user
             $table->string('email')->unique(); // Unique email address of the user
+            $table->timestamp('email_verified_at')->nullable(); // Timestamp for email verification
             $table->string('password'); // Password for the user
+            $table->rememberToken(); // Token for "remember me" functionality
+            $table->foreignId('current_team_id')->nullable(); // Foreign key for the current team, nullable
+            $table->string('profile_photo_path', 2048)->nullable(); // Path to the user's profile photo, optional
+            $table->timestamps(); // Timestamps for created_at and updated_at
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
