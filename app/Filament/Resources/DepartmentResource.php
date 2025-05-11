@@ -22,6 +22,7 @@ class DepartmentResource extends Resource
     // Set the icon for this resource in the navigation sidebar
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    protected static ?string $navigationGroup = 'ادارة النظام'; // Group for navigation in the admin panel
     /**
      * Define the form used for creating or editing a department.
      *

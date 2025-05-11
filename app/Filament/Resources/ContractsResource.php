@@ -32,6 +32,7 @@ class ContractsResource extends Resource
     // Set the navigation icon for this resource in Filament's admin panel
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    protected static ?string $navigationGroup = 'العقود';   // Group for navigation in the admin panel
     /**
      * Define the form for creating or editing a contract.
      * 

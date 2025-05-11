@@ -28,6 +28,7 @@ class CorrespondenceLogResource extends Resource
     // Set the icon to display in the navigation sidebar
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    protected static ?string $navigationGroup = 'المرسلات'; // Group for navigation in the admin panel
     /**
      * Define the form used to create or edit correspondence logs.
      * 

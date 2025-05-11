@@ -25,6 +25,8 @@ class UserResource extends Resource
     // The icon to show in the Filament navigation sidebar
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+        protected static ?string $navigationGroup = 'ادارة النظام'; // Group for navigation in the admin panel
+
     /**
      * Define the form schema for creating or updating a User.
      *
