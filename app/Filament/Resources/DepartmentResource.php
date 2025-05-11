@@ -20,7 +20,7 @@ class DepartmentResource extends Resource
     protected static ?string $model = Department::class;
 
     // Set the icon for this resource in the navigation sidebar
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-building-office';
 
     protected static ?string $navigationGroup = 'ادارة النظام'; // Group for navigation in the admin panel
     /**

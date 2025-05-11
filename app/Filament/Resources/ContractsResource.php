@@ -30,7 +30,7 @@ class ContractsResource extends Resource
     protected static ?string $model = Contract::class;
 
     // Set the navigation icon for this resource in Filament's admin panel
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
     protected static ?string $navigationGroup = 'العقود';   // Group for navigation in the admin panel
     /**

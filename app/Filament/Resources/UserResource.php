@@ -23,7 +23,7 @@ class UserResource extends Resource
     protected static ?string $model = User::class;
 
     // The icon to show in the Filament navigation sidebar
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-user';
 
         protected static ?string $navigationGroup = 'ادارة النظام'; // Group for navigation in the admin panel
 

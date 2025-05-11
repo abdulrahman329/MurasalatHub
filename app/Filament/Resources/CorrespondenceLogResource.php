@@ -26,7 +26,7 @@ class CorrespondenceLogResource extends Resource
     protected static ?string $model = Correspondence_log::class;
 
     // Set the icon to display in the navigation sidebar
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
     protected static ?string $navigationGroup = 'المرسلات'; // Group for navigation in the admin panel
     /**
