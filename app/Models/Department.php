@@ -9,25 +9,25 @@ class Department extends Model
     protected $table = 'departments';
 
     protected $fillable = [
-        'name', // اسم القسم
+        'name',
     ];
 
-    public $timestamps = false; // تعطيل الطوابع الزمنية التلقائية
+    public $timestamps = false; // Disable automatic timestamps
 
     /**
-     * العلاقة بين القسم والمستخدمين.
-     * القسم يحتوي على العديد من المستخدمين.
+     * Define the relationship between Department and User.
+     * A department has many users.
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function users()
     {
-        return $this->hasMany(User::class); // قسم يحتوي على العديد من المستخدمين
+        return $this->hasMany(User::class);
     }
 
     /**
-     * العلاقة للرسائل المرسلة من هذا القسم.
-     * القسم يمكنه إرسال العديد من المراسلات.
+     * Define the relationship for sent correspondences.
+     * A department can send many correspondences.
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
@@ -37,8 +37,8 @@ class Department extends Model
     }
 
     /**
-     * العلاقة للرسائل المستلمة من هذا القسم.
-     * القسم يمكنه استقبال العديد من المراسلات.
+     * Define the relationship for received correspondences.
+     * A department can receive many correspondences.
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */

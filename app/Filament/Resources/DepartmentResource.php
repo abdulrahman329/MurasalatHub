@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\DepartmentResource\Pages;
+use App\Filament\Resources\DepartmentResource\RelationManagers;
 use App\Models\Department;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms;
@@ -15,78 +16,113 @@ use Filament\Tables\Columns\TextColumn;
 
 class DepartmentResource extends Resource
 {
+    // Define the model associated with this resource (Department model)
     protected static ?string $model = Department::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-building-office';
+    // Set the icon for this resource in the navigation sidebar
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    // ✅ Arabic labels
-    protected static ?string $navigationLabel = 'الأقسام';
-    protected static ?string $modelLabel = 'قسم';
-    protected static ?string $pluralModelLabel = 'الأقسام';
-
-    protected static ?string$navigationGroup = "إعدادات النظام";
-
-
+    /**
+     * Define the form used for creating or editing a department.
+     *
+     * @param Form $form
+     * @return Form
+     */
     public static function form(Form $form): Form
     {
         return $form
-            ->schema([
+            ->schema([  // Define the schema for the form fields
+
+                // Text input field for department name (required)
                 TextInput::make('name')
-                    ->label('اسم القسم')
-                    ->required(),
+                    ->required(), // The name is a required field
             ]);
     }
 
+    /**
+     * Define the table used to display the departments.
+     *
+     * @param Table $table
+     * @return Table
+     */
     public static function table(Table $table): Table
     {
         return $table
-            ->columns([
+            ->columns([ // Define the columns displayed in the table
+
+                // Display the department ID (sortable)
                 TextColumn::make('id')
-                    ->label('المعرف')
+                    ->label('ID')
                     ->sortable(),
 
+                // Display the department name (sortable and searchable)
                 TextColumn::make('name')
-                    ->label('اسم القسم')
-                    ->sortable()
-                    ->searchable(),
+                    ->sortable()  // Allows sorting by name
+                    ->searchable(), // Allows searching by department name
             ])
-            ->filters([
+            ->filters([  // Define the filters available for the table
+
+                // Search filter that allows searching by department name or ID
                 Tables\Filters\Filter::make('search')
-                    ->form([
+                    ->form([  // Define the search form input field
                         Forms\Components\TextInput::make('search')
-                            ->label('ابحث بالمعرف أو الاسم')
-                            ->placeholder('اسم القسم أو المعرف'),
+                            ->label('Search for name or id')  // Label for the search field
+                            ->placeholder('name or department id'),  // Placeholder text
                     ])
-                    ->query(function (Builder $query, array $data) {
+                    ->query(function (Builder $query, array $data) {  // Query to filter departments based on search input
                         if ($search = $data['search'] ?? null) {
                             $query->where(function ($q) use ($search) {
+                                // Filter by either department ID or name
                                 $q->where('id', 'like', "%{$search}%")
-                                  ->orWhere('name', 'like', "%{$search}%");
+                                    ->orWhere('name', 'like', "%{$search}%");
                             });
                         }
                     }),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make()->label('تعديل'),
-                Tables\Actions\DeleteAction::make()->label('حذف'),
+            ->actions([  // Define actions that can be taken on a record in the table
+
+                // Action to edit a department record
+                Tables\Actions\EditAction::make(),
+
+                // Action to delete a department record
+                Tables\Actions\DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->bulkActions([  // Define bulk actions for multiple records
+
+                // Bulk delete action for selected department records
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()->label('حذف جماعي'),
+                    Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
     }
 
+    /**
+     * Define any relations to other resources (currently none).
+     *
+     * @return array
+     */
     public static function getRelations(): array
     {
-        return [];
+        return [
+            // Define relationships to other resources if needed
+        ];
     }
 
+    /**
+     * Define the pages for this resource (list, create, and edit pages).
+     *
+     * @return array
+     */
     public static function getPages(): array
     {
         return [
+            // Route to the list page
             'index' => Pages\ListDepartments::route('/'),
+
+            // Route to the create page
             'create' => Pages\CreateDepartment::route('/create'),
+
+            // Route to the edit page
             'edit' => Pages\EditDepartment::route('/{record}/edit'),
         ];
     }
