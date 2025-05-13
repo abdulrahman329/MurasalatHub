@@ -106,3 +106,4 @@ class CorrespondenceResource extends Resource
         ];
     }
 }
+ 
