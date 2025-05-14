@@ -83,6 +83,12 @@ class ContractsResource extends Resource
                     'application/x-tar',
                     ])
                 ->maxSize(10240),
+
+            // Hidden field for status, auto-filled to 'pending'
+            Hidden::make('action')
+                ->default('قيد الانتظار'),
+                
+
         ]);
     }
 
@@ -100,6 +106,24 @@ class ContractsResource extends Resource
 
                 TextColumn::make('contract_type')
                     ->label('نوع العقد'),
+
+                    TextColumn::make('action')
+                    ->label('الحالة')
+                    ->searchable()  // Make the select input searchable
+                    ->sortable() // Allow sorting by action
+                    ->getStateUsing(function ($record) {
+                        // Example: Show an icon or text based on action
+                        switch ($record->action) {
+                            case 'الموافقة':
+                                return '✅ الموافقة';
+                             case 'قيد الانتظار':
+                                return '⏳ قيد الانتظار';
+                            case 'مرفوض':
+                                return '❌ مرفوض';
+                            default:
+                                return 'قيد الانتظار';
+                        }
+                    }),
 
                     TextColumn::make('file')  // File column
                     ->label('ملف')
@@ -122,6 +146,11 @@ class ContractsResource extends Resource
                     ->label('تاريخ الانتهاء')
                     ->sortable()
                     ->date(),
+
+                    TextColumn::make('created_at')
+                    ->label('تم إنشاؤه في')
+                    ->sortable()
+                    ->dateTime('d/m/Y h:i A '),
             ])
             ->filters([
                 Tables\Filters\Filter::make('search')
@@ -164,8 +193,32 @@ class ContractsResource extends Resource
                     ->searchable(),
             ])
             ->actions([
-                EditAction::make()->label('تعديل'),
+                // make Actiongroup
+                Tables\Actions\ActionGroup::make([
+                    
+                EditAction::make()->label('تعديل')->color('warning'),
                 DeleteAction::make()->label('حذف'),
+
+                // Action to mark a single contract as Approved
+                    Tables\Actions\Action::make('markAsApproved')
+                        ->label('وضع علامة على الموافقة')
+                        ->action(function ($record) {
+                            $record->update(['action' => 'الموافقة']);
+                        })
+                        ->requiresConfirmation()
+                        ->color('success')
+                        ->visible(fn ($record) => $record->action !== 'الموافقة' && $record->action !== 'مرفوض'),
+
+                    // Action to mark a single contract as Rejected
+                    Tables\Actions\Action::make('markAsRejected')
+                        ->label('وضع علامة على الرفض')
+                        ->action(function ($record) {
+                            $record->update(['action' => 'مرفوض']);
+                        })
+                        ->requiresConfirmation()
+                        ->color('danger')
+                        ->visible(fn ($record) => $record->action !== 'مرفوض' && $record->action !== 'الموافقة'),
+            ]),
             ])
             ->bulkActions([
                 BulkActionGroup::make([

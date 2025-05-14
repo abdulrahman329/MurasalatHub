@@ -19,8 +19,11 @@ return new class extends Migration
             $table->foreign('correspondence_id')->references('id')->on('correspondences')->onDelete('cascade');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             
-            $table->string('action'); // Action performed (e.g., created, updated)
-            $table->text('note')->nullable(); // Optional note about the action            
+            $table->string('action')->default('pending'); // Action performed (e.g., created, updated)
+            $table->text('note')->nullable(); // Optional note about the action    
+            $table->timestamp('created_at')->useCurrent();
+
+
             
         });
     }

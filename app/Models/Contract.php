@@ -25,11 +25,27 @@ class Contract extends Model
         'end_date', // The end date of the contract
         'contract_type', // The type of the contract (e.g., service, employment)
         'file', // File attachment associated with the contract
+        'action', // The action performed (e.g., created, updated)
         'responsible_user_id', // Foreign key linking to the user responsible for the contract
     ];
 
+    /**
+     * Indicates if the model should be timestamped.
+     * This disables automatic created_at and updated_at fields.
+     *
+     * @var bool
+     */
     public $timestamps = false;
 
+    /**
+     * The attributes that should be cast to dates.
+     * This ensures proper handling of date fields.
+     *
+     * @var array<string>
+     */
+    protected $dates = [
+        'created_at', // The timestamp when the log was created
+    ];
     /**
      * Define the relationship for the responsible user.
      * A contract is managed by one responsible user.

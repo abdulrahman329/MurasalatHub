@@ -19,6 +19,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 
 
+
 class CorrespondenceResource extends Resource
 {
     protected static ?string $model = Correspondence::class;
@@ -96,10 +97,13 @@ class CorrespondenceResource extends Resource
 
             ]);
     }
-
+  
     public static function table(Table $table): Table
     {
         return $table
+        ->modifyQueryUsing(function (\Illuminate\Database\Eloquent\Builder $query) {
+            $query->where('receiver_department_id', auth()->user()->department_id);
+        })
             ->columns([
                 TextColumn::make('subject')
                 ->label('الموضوع')
@@ -172,45 +176,148 @@ class CorrespondenceResource extends Resource
                     //     ->icon('heroicon-o-eye'),
 
                     // Action to edit a correspondence record
-                    Tables\Actions\EditAction::make()->label('تعديل'),
+                    Tables\Actions\EditAction::make()
+                        ->label('تعديل')
+                        ->color('warning')
+                        ->visible(function ($record) {
+                            $user = auth()->user();
+                            return $user && (
+                                $record->sender_department_id == $user->department_id ||
+                                $record->created_by == $user->id
+                            );
+                        }),
 
                     // Action to delete a correspondence record
                     Tables\Actions\DeleteAction::make()->label('حذف'),
 
-                    // Action to mark a single correspondence as Approved
+                   // Action to mark as Approved
                     Tables\Actions\Action::make('markAsApproved')
                         ->label('وضع علامة على الموافقة')
                         ->action(function ($record) {
-                            $record->update(['status' => 'الموافقة']);
-                            
-                            // Find the existing CorrespondenceLog and update it
-                            $log = Correspondence_log::where('correspondence_id', $record->id)->first();
-                            if ($log) {
-                                $log->update([
-                                    'action' => 'الموافقة',
+                            $userName = auth()->user()->name ?? 'غير معروف';
+                            $departmentName = $record->receiverDepartment->name ?? 'غير معروف';
+
+                                $record->update([
+                                    'status' => 'الموافقة',
+                                    'notes' => "تمت الموافقة على المراسلة من قبل قسم {$departmentName} بواسطة المستخدم {$userName}",
                                 ]);
-                            }
+
+                            Correspondence_log::create([
+                                'correspondence_id' => $record->id,
+                                'user_id' => $record->created_by,
+                                'action' => 'الموافقة',
+                                'note' => "تمت الموافقة على المراسلة من قبل قسم {$departmentName} بواسطة المستخدم {$userName}",
+                            ]);
                         })
                         ->requiresConfirmation()
                         ->color('success'),
 
-                    // Action to mark a single correspondence as Rejected
+
+                    // Action to mark as Rejected
                     Tables\Actions\Action::make('markAsRejected')
                         ->label('وضع علامة على الرفض')
                         ->action(function ($record) {
-                            $record->update(['status' => 'مرفوض']);
+                            $userName = auth()->user()->name ?? 'غير معروف';
+                            $departmentName = $record->receiverDepartment->name ?? 'غير معروف';
+
+                                $record->update([
+                                    'status' => 'مرفوض',
+                                    'notes' => "تم رفض المراسلة من قبل قسم {$departmentName} بواسطة المستخدم {$userName}",
+                        ]);
+
+                        Correspondence_log::create([
+                            'correspondence_id' => $record->id,
+                            'user_id' => $record->created_by,
+                            'action' => 'مرفوض',
+                            'note' => "تم رفض المراسلة من قبل قسم {$departmentName} بواسطة المستخدم {$userName}",
+                        ]);
+                    })
+                    ->requiresConfirmation()
+                    ->color('danger'),
+
+
+                    // // Action to mark a single correspondence as Approved
+                    // Tables\Actions\Action::make('markAsApproved')
+                    //     ->label('وضع علامة على الموافقة')
+                    //     ->action(function ($record) {
+                    //         $record->update([
+                    //             'status' => 'الموافقة',
+                    //             'notes' => 'تمت الموافقة على المراسلة من قبل قسم ' . ($record->receiverDepartment->name ?? 'غير معروف'),
+
+                    //     ]);
                             
-                            // Find the existing CorrespondenceLog and update it
-                            $log = Correspondence_log::where('correspondence_id', $record->id)->first();
-                            if ($log) {
-                                $log->update([
-                                    'action' => 'مرفوض',
+                    //         // Find the existing CorrespondenceLog and update it
+                    //         $log = Correspondence_log::where('correspondence_id', $record->id)->first();
+                    //         if ($log) {
+                    //             $log->update([
+                    //                 'action' => 'الموافقة',
+                    //                 'note' => 'تمت الموافقة على المراسلة من قبل قسم ' . ($record->receiverDepartment->name ?? 'غير معروف'),
+                    //             ]);
+                    //         }
+                    //     })
+                    //     ->requiresConfirmation()
+                    //     ->color('success'),
+
+                    // // Action to mark a single correspondence as Rejected
+                    // Tables\Actions\Action::make('markAsRejected')
+                    //     ->label('وضع علامة على الرفض')
+                    //     ->action(function ($record) {
+                    //         $record->update([
+                    //             'status' => 'مرفوض',
+                    //             'notes' => 'تم رفض المراسلة من قبل قسم ' . ($record->receiverDepartment->name ?? 'غير معروف'),
+                    //         ]);
+
+                            
+                    //         // Find the existing CorrespondenceLog and update it
+                    //         $log = Correspondence_log::where('correspondence_id', $record->id)->first();
+                    //         if ($log) {
+                    //             $log->update([
+                    //                 'action' => 'مرفوض',
+                    //                 'note' => 'تم رفض المراسلة من قبل قسم ' . ($record->receiverDepartment->name ?? 'غير معروف'),
+                    //             ]);
+                    //         }
+                    //     })
+                    //     ->requiresConfirmation()
+                    //     ->color('danger'),
+
+                        Tables\Actions\Action::make('forwardToDepartment')
+                            ->label('الموافقة وتحويل إلى قسم آخر')
+                            ->form([
+                                Forms\Components\Select::make('receiver_department_id')
+                                    ->label('اختر القسم الجديد')
+                                    ->relationship('receiverDepartment', 'name')
+                                    ->required()
+                                    ->options(function ($record) {
+                                        // Exclude current sender and receiver departments
+                                        $departments = \App\Models\Department::query();
+                                        if ($record) {
+                                            $departments->where('id', '!=', $record->sender_department_id)
+                                                ->where('id', '!=', $record->receiver_department_id);
+                                        }
+                                        return $departments->pluck('name', 'id');
+                                    }),
+                            ])
+                            ->action(function ($record, array $data) {
+                                // Update the correspondence with the new department
+
+                                $record->update([
+                                    'receiver_department_id' => $data['receiver_department_id'],
+                                    'status' => '⏳ قيد الانتظار',
+                                    'notes' => 'تمت الموافقة على المراسلة من قبل قسم ' . ($record->senderDepartment->name ?? 'غير معروف') . ' إلى قسم ' . ($record->receiverDepartment->name ?? 'غير معروف'),
                                 ]);
-                            }
-                        })
-                        ->requiresConfirmation()
-                        ->color('danger'),
-                ]),
+
+                                // Log the forwarding action
+                                Correspondence_Log::create([
+                                    'correspondence_id' => $record->id,
+                                    'user_id' => $record->created_by,
+                                    'action' => 'الموافقة وتحويل إلى قسم آخر',
+                                    'note' => 'تمت الموافقة على المراسلة من قبل قسم ' . ($record->senderDepartment->name ?? 'غير معروف') . ' إلى قسم ' . ($record->receiverDepartment->name ?? 'غير معروف'),
+                                ]);
+                            })
+                            ->icon('heroicon-o-arrow-right')
+                            ->color('success')
+                            ->requiresConfirmation(),
+            ])
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

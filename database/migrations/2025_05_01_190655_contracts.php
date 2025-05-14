@@ -18,6 +18,8 @@ return new class extends Migration
             $table->date('end_date'); // End date of the contract
             $table->string('contract_type'); // Type of the contract (e.g., service, employment)
             $table->string('file')->nullable(); // Optional file attachment
+            $table->string('action')->default('pending'); // Action performed (e.g., created, updated)
+            $table->timestamp('created_at')->useCurrent();
             $table->foreignId('responsible_user_id') // Foreign key linking to the 'users' table
                   ->constrained('users')
                   ->onDelete('cascade'); // Cascade delete if the user is deleted

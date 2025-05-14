@@ -68,21 +68,16 @@ class CorrespondenceLogResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('correspondence_id')
-                    ->label('رقم المراسلة')
-                    ->sortable()
-                    ->searchable(),
+                    ->label('رقم المراسلة'),
 
                 TextColumn::make('user.name')
                     ->label('أنشأ بواسطة'),
 
                 TextColumn::make('note')
-                    ->label('الملاحظة')
-                    ->limit(50), // Limit the displayed note length to 50 characters
+                    ->label('الملاحظة'),
 
                 TextColumn::make('action')
                 ->label('الحالة')
-                ->searchable()  // Make the select input searchable
-                ->sortable() // Allow sorting by status
                 ->getStateUsing(function ($record) {
                     // Example: Show an icon or text based on status
                     switch ($record->action) {
@@ -92,10 +87,17 @@ class CorrespondenceLogResource extends Resource
                             return '⏳ قيد الانتظار';
                         case 'مرفوض':
                             return '❌ مرفوض';
+                        case 'الموافقة وتحويل إلى قسم آخر';
+                            return '🔄 الموافقة وتحويل إلى قسم آخر';
                         default:
                             return 'قيد الانتظار';
                     }
                 }),
+                TextColumn::make('created_at')
+                    ->label('تم إنشاؤه في')
+                    ->sortable()
+                    ->dateTime('d/m/Y h:i A '),
+
 
             ])
             ->filters([
@@ -109,7 +111,15 @@ class CorrespondenceLogResource extends Resource
                             $query->where('correspondence_id', 'like', '%' . $data['correspondence_id'] . '%');
                         }
                     }),
-
+                    Tables\Filters\SelectFilter::make('action')
+                        ->label('الإجراء')
+                        ->options([
+                            'الموافقة' => 'الموافقة',
+                            'قيد الانتظار' => 'قيد الانتظار',
+                            'مرفوض' => 'مرفوض',
+                            'الموافقة وتحويل إلى قسم آخر' => 'الموافقة وتحويل إلى قسم آخر',
+                        ])
+                        ->searchable(),
                 Tables\Filters\SelectFilter::make('user_id')
                     ->label('أنشأ بواسطة')
                     ->relationship('user', 'name')
