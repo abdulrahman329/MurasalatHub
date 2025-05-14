@@ -33,19 +33,26 @@ class CorrespondenceLogResource extends Resource
     {
         return $form
             ->schema([
-                BelongsToSelect::make('user_id')
-                    ->relationship('user', 'name')
-                    ->label('أنشأ بواسطة')
+
+
+                // Automatically set the user_id to the currently authenticated user and hide the field
+                Forms\Components\TextInput::make('user_id')
+                    ->default(fn () => auth()->id())
                     ->searchable()
                     ->required(),
 
-                Select::make('correspondence_id')
-                    ->label('رقم المراسلة')
-                    ->options(
-                        Correspondence::all()->pluck('number', 'id')
-                    )
-                    ->searchable()
-                    ->required(),
+                    
+                // Automatically set the correspondence_id if provided in the request, otherwise leave empty
+                Forms\Components\TextInput::make('correspondence_id')
+                ->searchable()
+                // ->label('Correspondence ID')
+                //     ->options(
+                //         Correspondence::all()->pluck('id')
+                //     )
+                ->required(), // Make this field required
+
+                //->label('أنشأ بواسطة')
+                //->label('رقم المراسلة')
 
                 Forms\Components\TextInput::make('action')
                     ->label('الإجراء')
@@ -68,18 +75,28 @@ class CorrespondenceLogResource extends Resource
                 TextColumn::make('user.name')
                     ->label('أنشأ بواسطة'),
 
-                TextColumn::make('action')
-                    ->label('الإجراء')
-                    ->sortable()
-                    ->searchable(),
-
                 TextColumn::make('note')
                     ->label('الملاحظة')
-                    ->limit(50),
+                    ->limit(50), // Limit the displayed note length to 50 characters
 
-                TextColumn::make('created_at')
-                    ->label('تاريخ الإنشاء')
-                    ->sortable(),
+                TextColumn::make('action')
+                ->label('الحالة')
+                ->searchable()  // Make the select input searchable
+                ->sortable() // Allow sorting by status
+                ->getStateUsing(function ($record) {
+                    // Example: Show an icon or text based on status
+                    switch ($record->action) {
+                        case 'الموافقة':
+                            return '✅ الموافقة';
+                        case 'قيد الانتظار':
+                            return '⏳ قيد الانتظار';
+                        case 'مرفوض':
+                            return '❌ مرفوض';
+                        default:
+                            return 'قيد الانتظار';
+                    }
+                }),
+
             ])
             ->filters([
                 Tables\Filters\Filter::make('correspondence_id')
@@ -99,13 +116,17 @@ class CorrespondenceLogResource extends Resource
                     ->searchable(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make()->label('تعديل'),
-                Tables\Actions\DeleteAction::make()->label('حذف'),
+                // Tables\Actions\ViewAction::make()
+                //     ->icon('heroicon-o-eye')
+                //     ->url(fn ($record) => route('filament.admin.resources.correspondence-logs.view', $record->id))
+                //     ->openUrlInNewTab(),
+                // Tables\Actions\EditAction::make()->label('تعديل'),
+                // Tables\Actions\DeleteAction::make()->label('حذف'),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()->label('حذف جماعي'),
-                ]),
+                // Tables\Actions\BulkActionGroup::make([
+                //     Tables\Actions\DeleteBulkAction::make()->label('حذف المحدد'),
+                // ]),
             ]);
     }
 
@@ -114,12 +135,17 @@ class CorrespondenceLogResource extends Resource
         return [];
     }
 
+    public static function canCreate(): bool
+    {
+        return false;  // Disables the "New" button
+    }
+
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListCorrespondenceLogs::route('/'),
-            'create' => Pages\CreateCorrespondenceLog::route('/create'),
-            'edit' => Pages\EditCorrespondenceLog::route('/{record}/edit'),
+            // 'create' => Pages\CreateCorrespondenceLog::route('/create'),
+            // 'edit' => Pages\EditCorrespondenceLog::route('/{record}/edit'),
         ];
     }
 }

@@ -13,6 +13,11 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms\Components\Hidden;
+use App\Models\Correspondence_log;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Textarea;
+
 
 class CorrespondenceResource extends Resource
 {
@@ -31,19 +36,25 @@ class CorrespondenceResource extends Resource
                     ->label('الموضوع')
                     ->required(),
 
-                TextInput::make('type')
+                Select::make('type')
                     ->label('نوع المراسلة')
+                    ->options([
+                        'email' => 'Email',
+                        'letter' => 'Letter',
+                        'fax' => 'Fax',
+                        'memo' => 'Memo',
+                        'report' => 'Report',
+                        'notification' => 'Notification',
+                        'circular' => 'Circular',
+                        'invoice' => 'Invoice',
+                        'other' => 'Other',
+                    ]) // Ensure all labels are valid strings
                     ->required(),
 
-                TextInput::make('number')
-                    ->label('رقم المراسلة')
-                    ->required(),
-
-                Select::make('sender_department_id')
-                    ->label('القسم المرسل')
-                    ->relationship('senderDepartment', 'name')
-                    ->searchable()
-                    ->required(),
+                    // Hidden field for sender_department_id, auto-filled from the authenticated user (with fallback)
+                    Forms\Components\Hidden::make('sender_department_id')
+                        ->default(fn () => auth()->user()?->department_id)
+                        ->required(),
 
                 Select::make('receiver_department_id')
                     ->label('القسم المستقبل')
@@ -51,25 +62,38 @@ class CorrespondenceResource extends Resource
                     ->searchable()
                     ->required(),
 
-                TextInput::make('file')
-                    ->label('الملف'),
-
-                TextInput::make('notes')
+                Textarea::make('notes')
                     ->label('ملاحظات'),
 
-                Select::make('status')
-                    ->label('الحالة')
-                    ->options([
-                        'pending' => 'قيد الانتظار',
-                        'completed' => 'مكتمل',
-                    ])
+                // Accept more than just PDF and image files (e.g., Word, Excel, PowerPoint, ZIP)
+                FileUpload::make('file')
+                    ->label('الملف')
+                    ->directory('contracts')
+                    ->acceptedFileTypes([
+                    'application/pdf',
+                    'image/*',
+                    'application/msword',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'application/vnd.ms-excel',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'application/vnd.ms-powerpoint',
+                    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                    'application/zip',
+                    'application/x-7z-compressed',
+                    'application/x-rar-compressed',
+                    'application/x-tar',
+                ])
+                    ->maxSize(10240),
+
+                // Hidden field for status, auto-filled to 'pending'
+                Forms\Components\Hidden::make('status')
+                ->default('قيد الانتظار'),
+
+                    // Hidden field for user_id, auto-filled from the authenticated user
+                    Forms\Components\Hidden::make('created_by')
+                    ->default(fn () => auth()->id())
                     ->required(),
 
-                Select::make('created_by')
-                    ->label('أنشئ بواسطة')
-                    ->relationship('creator', 'name')
-                    ->searchable()
-                    ->required(),
             ]);
     }
 
@@ -77,18 +101,116 @@ class CorrespondenceResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('subject')->label('الموضوع'),
-                TextColumn::make('type')->label('نوع المراسلة'),
-                TextColumn::make('number')->label('رقم المراسلة'),
-                TextColumn::make('senderDepartment.name')->label('القسم المرسل'),
-                TextColumn::make('receiverDepartment.name')->label('القسم المستقبل'),
-                TextColumn::make('status')->label('الحالة'),
-                TextColumn::make('creator.name')->label('أنشئ بواسطة'),
+                TextColumn::make('subject')
+                ->label('الموضوع')
+                ->searchable(),  // Make the select input searchable
+
+                TextColumn::make('creator.name')
+                ->label('أنشئ بواسطة')
+                ->searchable()  // Make the select input searchable
+                ->sortable(), // Allow sorting by creator name
+
+                TextColumn::make('senderDepartment.name')
+                ->label('القسم المرسل')
+                ->searchable()  // Make the select input searchable
+                ->sortable(), // Allow sorting by sender department name
+
+                TextColumn::make('receiverDepartment.name')
+                ->label('القسم المستقبل')
+                ->searchable()  // Make the select input searchable
+                ->sortable(), // Allow sorting by Receiver department name
+
+                TextColumn::make('type')
+                ->label('نوع المراسلة')
+                ->searchable()  // Make the column searchable
+                ->sortable(), // Allow sorting by type
+
+                TextColumn::make('notes')
+                    ->label('ملاحظات'),
+
+                TextColumn::make('status')
+                ->label('الحالة')
+                ->searchable()  // Make the select input searchable
+                ->sortable() // Allow sorting by status
+                ->getStateUsing(function ($record) {
+                    // Example: Show an icon or text based on status
+                    switch ($record->status) {
+                        case 'الموافقة':
+                            return '✅ الموافقة';
+                         case 'قيد الانتظار':
+                            return '⏳ قيد الانتظار';
+                        case 'مرفوض':
+                            return '❌ مرفوض';
+                        default:
+                            return 'قيد الانتظار';
+                    }
+                }),
+
+                TextColumn::make('file')  // File column
+                    ->label('ملف')
+                    ->getStateUsing(function ($record) {
+                    // Add custom logic for determining if a file exists
+                    if (empty($record->file)) {
+                        return '❌ لا يوجد ملف';
+                    }
+    
+                        // Return custom file info, e.g., filename or extension
+                        return '✅ ' . pathinfo($record->file, PATHINFO_EXTENSION) . ' ملف';
+                    }),
+
             ])
-            ->filters([])
+
+            ->filters([
+
+            ])
             ->actions([
-                Tables\Actions\EditAction::make()->label('تعديل'),
-                Tables\Actions\DeleteAction::make()->label('حذف'),
+                Tables\Actions\ActionGroup::make([
+                    // Custom action to view details of a correspondence record
+                    // Tables\Actions\Action::make('view')
+                    //     ->label('View')
+                    //     ->url(fn ($record) => route('filament.admin.resources.correspondences.view', $record->id))
+                    //     ->icon('heroicon-o-eye'),
+
+                    // Action to edit a correspondence record
+                    Tables\Actions\EditAction::make()->label('تعديل'),
+
+                    // Action to delete a correspondence record
+                    Tables\Actions\DeleteAction::make()->label('حذف'),
+
+                    // Action to mark a single correspondence as Approved
+                    Tables\Actions\Action::make('markAsApproved')
+                        ->label('وضع علامة على الموافقة')
+                        ->action(function ($record) {
+                            $record->update(['status' => 'الموافقة']);
+                            
+                            // Find the existing CorrespondenceLog and update it
+                            $log = Correspondence_log::where('correspondence_id', $record->id)->first();
+                            if ($log) {
+                                $log->update([
+                                    'action' => 'الموافقة',
+                                ]);
+                            }
+                        })
+                        ->requiresConfirmation()
+                        ->color('success'),
+
+                    // Action to mark a single correspondence as Rejected
+                    Tables\Actions\Action::make('markAsRejected')
+                        ->label('وضع علامة على الرفض')
+                        ->action(function ($record) {
+                            $record->update(['status' => 'مرفوض']);
+                            
+                            // Find the existing CorrespondenceLog and update it
+                            $log = Correspondence_log::where('correspondence_id', $record->id)->first();
+                            if ($log) {
+                                $log->update([
+                                    'action' => 'مرفوض',
+                                ]);
+                            }
+                        })
+                        ->requiresConfirmation()
+                        ->color('danger'),
+                ]),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -106,4 +228,3 @@ class CorrespondenceResource extends Resource
         ];
     }
 }
- 

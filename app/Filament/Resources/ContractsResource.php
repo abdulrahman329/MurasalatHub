@@ -12,6 +12,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use App\Models\Contract;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms\Components\Hidden;
+
 
 class ContractsResource extends Resource
 {
@@ -33,34 +35,53 @@ class ContractsResource extends Resource
                 ->label('عنوان العقد')
                 ->required(),
 
-            TextInput::make('contract_type')
+            Select::make('contract_type')
                 ->label('نوع العقد')
+                ->options([
+                    'عقد شراء' => 'عقد شراء',
+                    'عقد خدمة' => 'عقد خدمة',
+                    'عقد استشاري' => 'عقد استشاري',
+                    'عقد إيجار' => 'عقد إيجار',
+                    'عقد صيانة' => 'عقد صيانة',
+                    'عقد بيع' => 'عقد بيع',
+                    'عقد عمل' => 'عقد عمل',
+                ])
                 ->required(),
 
-            TextInput::make('party_name')
-                ->label('اسم الطرف المتعاقد')
-                ->required(),
-
-            Select::make('responsible_user_id')
-                ->label('المسؤول')
-                ->relationship('responsibleUser', 'name')
-                ->searchable()
+                // Hidden field for user_id, auto-filled from the authenticated user
+                Hidden::make('responsible_user_id')
+                ->default(fn () => auth()->id())
                 ->required(),
 
             DatePicker::make('start_date')
                 ->label('تاريخ البدء')
                 ->required()
-                ->before('end_date'),
+                ->before('end_date')  // Ensure that start date is before the end date
+                ->minDate(\Illuminate\Support\Carbon::today()),  // Ensure start date is not before today
 
             DatePicker::make('end_date')
                 ->label('تاريخ الانتهاء')
                 ->required()
                 ->after('start_date'),
 
+            // Accept more than just PDF and image files (e.g., Word, Excel, PowerPoint, ZIP)
             FileUpload::make('file')
                 ->label('الملف')
                 ->directory('contracts')
-                ->acceptedFileTypes(['application/pdf', 'image/*'])
+                ->acceptedFileTypes([
+                    'application/pdf',
+                    'image/*',
+                    'application/msword',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'application/vnd.ms-excel',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'application/vnd.ms-powerpoint',
+                    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                    'application/zip',
+                    'application/x-7z-compressed',
+                    'application/x-rar-compressed',
+                    'application/x-tar',
+                    ])
                 ->maxSize(10240),
         ]);
     }
@@ -69,23 +90,28 @@ class ContractsResource extends Resource
     {
         return $table
             ->columns([
+                TextColumn::make('responsibleUser.name')
+                    ->label('المسؤول'),
+
                 TextColumn::make('title')
                     ->label('عنوان العقد')
                     ->sortable()
                     ->searchable(),
 
-                TextColumn::make('responsibleUser.name')
-                    ->label('المسؤول'),
-
                 TextColumn::make('contract_type')
                     ->label('نوع العقد'),
 
-                TextColumn::make('party_name')
-                    ->label('اسم الطرف'),
-
-                TextColumn::make('file')
-                    ->label('الملف')
-                    ->formatStateUsing(fn ($state) => $state ? '✅ يوجد ملف' : '❌ لا يوجد ملف'),
+                    TextColumn::make('file')  // File column
+                    ->label('ملف')
+                    ->getStateUsing(function ($record) {
+                    // Add custom logic for determining if a file exists
+                    if (empty($record->file)) {
+                        return '❌ لا يوجد ملف';
+                    }
+    
+                        // Return custom file info, e.g., filename or extension
+                        return '✅ ' . pathinfo($record->file, PATHINFO_EXTENSION) . ' ملف';
+                    }),
 
                 TextColumn::make('start_date')
                     ->label('تاريخ البدء')
@@ -143,7 +169,7 @@ class ContractsResource extends Resource
             ])
             ->bulkActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make()->label('حذف جماعي'),
+                    DeleteBulkAction::make()->label('حذف المحدد'),
                 ]),
             ]);
     }
@@ -157,8 +183,8 @@ class ContractsResource extends Resource
     {
         return [
             'index' => ListContracts::route('/'),
-            'create' => CreateContracts::route('/create'),
-            'edit' => EditContracts::route('/{record}/edit'),
+            // 'create' => CreateContracts::route('/create'),
+            // 'edit' => EditContracts::route('/{record}/edit'),
         ];
     }
 }

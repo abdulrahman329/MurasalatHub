@@ -40,8 +40,10 @@ class DepartmentResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('id')
-                    ->label('المعرف')
-                    ->sortable(),
+                    ->label('رقم القسم')
+                    ->sortable()
+                    ->searchable(),
+
 
                 TextColumn::make('name')
                     ->label('اسم القسم')
@@ -52,8 +54,8 @@ class DepartmentResource extends Resource
                 Tables\Filters\Filter::make('search')
                     ->form([
                         Forms\Components\TextInput::make('search')
-                            ->label('ابحث بالمعرف أو الاسم')
-                            ->placeholder('اسم القسم أو المعرف'),
+                            ->label('ابحث رقم القسم أو الاسم القسم')
+                            ->placeholder('اسم القسم أو رقم القسم'),
                     ])
                     ->query(function (Builder $query, array $data) {
                         if ($search = $data['search'] ?? null) {
@@ -70,7 +72,7 @@ class DepartmentResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()->label('حذف جماعي'),
+                    Tables\Actions\DeleteBulkAction::make()->label('حذف المحدد'),
                 ]),
             ]);
     }
@@ -84,8 +86,8 @@ class DepartmentResource extends Resource
     {
         return [
             'index' => Pages\ListDepartments::route('/'),
-            'create' => Pages\CreateDepartment::route('/create'),
-            'edit' => Pages\EditDepartment::route('/{record}/edit'),
+            // 'create' => Pages\CreateDepartment::route('/create'),
+            // 'edit' => Pages\EditDepartment::route('/{record}/edit'),
         ];
     }
 }

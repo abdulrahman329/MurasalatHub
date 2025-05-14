@@ -20,9 +20,7 @@ return new class extends Migration
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             
             $table->string('action'); // Action performed (e.g., created, updated)
-            $table->text('note')->nullable(); // Optional note about the action
-            $table->timestamp('created_at')->useCurrent(); // Timestamp of the action
-            
+            $table->text('note')->nullable(); // Optional note about the action            
             
         });
     }

@@ -53,31 +53,31 @@ class UserResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')
-                    ->label('المعرف'),
+                    ->label('رقم المستخدم')
+                    ->sortable()
+                    ->searchable(),
 
                 Tables\Columns\TextColumn::make('name')
-                    ->label('اسم المستخدم'),
+                    ->label('اسم المستخدم')
+                    ->sortable()
+                    ->searchable(),
 
                 Tables\Columns\TextColumn::make('email')
-                    ->label('البريد الإلكتروني'),
+                    ->label('البريد الإلكتروني')
+                    ->sortable()
+                    ->searchable(),
 
                 Tables\Columns\TextColumn::make('department.name')
-                    ->label('القسم'),
-
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('تاريخ الإنشاء')
-                    ->dateTime(),
-
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->label('تاريخ التحديث')
-                    ->dateTime(),
+                    ->label('القسم')
+                    ->sortable()
+                    ->searchable(),
             ])
             ->filters([
                 Tables\Filters\Filter::make('search')
                     ->form([
                         Forms\Components\TextInput::make('search')
-                            ->label('ابحث')
-                            ->placeholder('المعرف أو الاسم أو البريد الإلكتروني'),
+                            ->label(' ابحث رقم المستخدم أو الاسم المستخدم أو البريد الإلكتروني')
+                            ->placeholder('رقم المستخدم أو الاسم المستخدم أو البريد الإلكتروني'),
                     ])
                     ->query(function (Builder $query, array $data) {
                         if ($search = $data['search'] ?? null) {
@@ -98,7 +98,7 @@ class UserResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->label('حذف جماعي'),
+                        ->label('حذف المحدد'),
                 ]),
             ]);
     }
@@ -107,8 +107,8 @@ class UserResource extends Resource
     {
         return [
             'index' => Pages\ListUsers::route('/'),
-            'create' => Pages\CreateUser::route('/create'),
-            'edit' => Pages\EditUser::route('/{record}/edit'),
+            //'create' => Pages\CreateUser::route('/create'),
+            //'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
     }
 }
