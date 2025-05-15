@@ -74,7 +74,9 @@ class CorrespondenceLogResource extends Resource
                     ->label('أنشأ بواسطة'),
 
                 TextColumn::make('note')
-                    ->label('الملاحظة'),
+                    ->label('الملاحظة')
+                    ->wrap(), // Enable wrapping to allow multi-line notes
+
 
                 TextColumn::make('action')
                 ->label('الحالة')
@@ -88,7 +90,7 @@ class CorrespondenceLogResource extends Resource
                         case 'مرفوض':
                             return '❌ مرفوض';
                         case 'الموافقة وتحويل إلى قسم آخر';
-                            return '🔄 الموافقة وتحويل إلى قسم آخر';
+                            return '🔄✅ الموافقة وتحويل إلى قسم آخر';
                         default:
                             return 'قيد الانتظار';
                     }

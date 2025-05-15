@@ -46,7 +46,7 @@ class StatsOverview extends BaseWidget
             // 5) المراسلات قيد الانتظار (status = pending)
             Stat::make(
                 'المراسلات قيد الانتظار',
-                Correspondence::where('status', 'pending')->count()
+                Correspondence::where('status', 'قيد الانتظار')->count()
             )
                 ->description('تحتاج إلى إجراء')
                 ->icon('heroicon-o-clock')

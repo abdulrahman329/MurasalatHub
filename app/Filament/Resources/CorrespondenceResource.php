@@ -18,8 +18,6 @@ use App\Models\Correspondence_log;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 
-
-
 class CorrespondenceResource extends Resource
 {
     protected static ?string $model = Correspondence::class;
@@ -28,15 +26,18 @@ class CorrespondenceResource extends Resource
     protected static ?string $navigationLabel = 'المراسلات';
     protected static ?string $modelLabel = 'مراسلة';
     protected static ?string $pluralModelLabel = 'المراسلات';
-     protected static ?string $navigationGroup = 'المراسلات'; 
+    protected static ?string $navigationGroup = 'المراسلات';
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
+                // Input for the subject of the correspondence
                 TextInput::make('subject')
                     ->label('الموضوع')
                     ->required(),
 
+                // Dropdown for selecting the type of correspondence
                 Select::make('type')
                     ->label('نوع المراسلة')
                     ->options([
@@ -49,133 +50,134 @@ class CorrespondenceResource extends Resource
                         'circular' => 'Circular',
                         'invoice' => 'Invoice',
                         'other' => 'Other',
-                    ]) // Ensure all labels are valid strings
+                    ])
                     ->required(),
 
-                    // Hidden field for sender_department_id, auto-filled from the authenticated user (with fallback)
-                    Forms\Components\Hidden::make('sender_department_id')
-                        ->default(fn () => auth()->user()?->department_id)
-                        ->required(),
+                // Hidden field for the sender's department ID, auto-filled from the authenticated user
+                Hidden::make('sender_department_id')
+                    ->default(fn () => auth()->user()?->department_id)
+                    ->required(),
 
+                // Dropdown for selecting the receiver's department
                 Select::make('receiver_department_id')
                     ->label('القسم المستقبل')
-                    ->relationship('receiverDepartment', 'name')
+                    ->relationship(
+                        name: 'receiverDepartment',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: fn ($query) => $query->where('id', '!=', auth()->user()?->department_id)->select(['id', 'name']) // Exclude sender's department
+                    )
                     ->searchable()
                     ->required(),
 
+                // Textarea for additional notes
                 Textarea::make('notes')
                     ->label('ملاحظات'),
 
-                // Accept more than just PDF and image files (e.g., Word, Excel, PowerPoint, ZIP)
+                // File upload for attaching files
                 FileUpload::make('file')
                     ->label('الملف')
                     ->directory('contracts')
                     ->acceptedFileTypes([
-                    'application/pdf',
-                    'image/*',
-                    'application/msword',
-                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                    'application/vnd.ms-excel',
-                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    'application/vnd.ms-powerpoint',
-                    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-                    'application/zip',
-                    'application/x-7z-compressed',
-                    'application/x-rar-compressed',
-                    'application/x-tar',
-                ])
+                        'application/pdf',
+                        'image/*',
+                        'application/msword',
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        'application/vnd.ms-excel',
+                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        'application/vnd.ms-powerpoint',
+                        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                        'application/zip',
+                        'application/x-7z-compressed',
+                        'application/x-rar-compressed',
+                        'application/x-tar',
+                    ])
                     ->maxSize(10240),
 
-                // Hidden field for status, auto-filled to 'pending'
+                // Hidden field for the status, defaulted to 'pending'
                 Forms\Components\Hidden::make('status')
-                ->default('قيد الانتظار'),
+                    ->default('قيد الانتظار'),
 
-                    // Hidden field for user_id, auto-filled from the authenticated user
-                    Forms\Components\Hidden::make('created_by')
+                // Hidden field for the user ID, auto-filled from the authenticated user
+                Forms\Components\Hidden::make('created_by')
                     ->default(fn () => auth()->id())
                     ->required(),
-
             ]);
     }
-  
+
     public static function table(Table $table): Table
     {
         return $table
-        ->modifyQueryUsing(function (\Illuminate\Database\Eloquent\Builder $query) {
-            $query->where('receiver_department_id', auth()->user()->department_id);
-        })
+            ->modifyQueryUsing(function (Builder $query) {
+                // Show records where the user is either the sender or the receiver
+                $query->where('sender_department_id', auth()->user()->department_id)
+                      ->orWhere('receiver_department_id', auth()->user()->department_id);
+            })
             ->columns([
+                // Column for the subject
                 TextColumn::make('subject')
-                ->label('الموضوع')
-                ->searchable(),  // Make the select input searchable
+                    ->label('الموضوع')
+                    ->searchable(),
 
+                // Column for the creator's name
                 TextColumn::make('creator.name')
-                ->label('أنشئ بواسطة')
-                ->searchable()  // Make the select input searchable
-                ->sortable(), // Allow sorting by creator name
+                    ->label('أنشئ بواسطة')
+                    ->searchable()
+                    ->sortable(),
 
+                // Column for the sender's department
                 TextColumn::make('senderDepartment.name')
-                ->label('القسم المرسل')
-                ->searchable()  // Make the select input searchable
-                ->sortable(), // Allow sorting by sender department name
+                    ->label('القسم المرسل')
+                    ->searchable()
+                    ->sortable(),
 
+                // Column for the receiver's department
                 TextColumn::make('receiverDepartment.name')
-                ->label('القسم المستقبل')
-                ->searchable()  // Make the select input searchable
-                ->sortable(), // Allow sorting by Receiver department name
+                    ->label('القسم المستقبل')
+                    ->searchable()
+                    ->sortable(),
 
+                // Column for the type of correspondence
                 TextColumn::make('type')
-                ->label('نوع المراسلة')
-                ->searchable()  // Make the column searchable
-                ->sortable(), // Allow sorting by type
+                    ->label('نوع المراسلة')
+                    ->searchable()
+                    ->sortable(),
 
+                // Column for notes
                 TextColumn::make('notes')
-                    ->label('ملاحظات'),
+                    ->label('ملاحظات')
+                    ->wrap(),
 
+                // Column for the status with icons
                 TextColumn::make('status')
-                ->label('الحالة')
-                ->searchable()  // Make the select input searchable
-                ->sortable() // Allow sorting by status
-                ->getStateUsing(function ($record) {
-                    // Example: Show an icon or text based on status
-                    switch ($record->status) {
-                        case 'الموافقة':
-                            return '✅ الموافقة';
-                         case 'قيد الانتظار':
-                            return '⏳ قيد الانتظار';
-                        case 'مرفوض':
-                            return '❌ مرفوض';
-                        default:
-                            return 'قيد الانتظار';
-                    }
-                }),
-
-                TextColumn::make('file')  // File column
-                    ->label('ملف')
+                    ->label('الحالة')
+                    ->searchable()
+                    ->sortable()
                     ->getStateUsing(function ($record) {
-                    // Add custom logic for determining if a file exists
-                    if (empty($record->file)) {
-                        return '❌ لا يوجد ملف';
-                    }
-    
-                        // Return custom file info, e.g., filename or extension
-                        return '✅ ' . pathinfo($record->file, PATHINFO_EXTENSION) . ' ملف';
+                        switch ($record->status) {
+                            case 'الموافقة':
+                                return '✅ الموافقة';
+                            case 'قيد الانتظار':
+                                return '⏳ قيد الانتظار';
+                            case 'مرفوض':
+                                return '❌ مرفوض';
+                            default:
+                                return 'قيد الانتظار';
+                        }
                     }),
 
-            ])
-
-            ->filters([
-
+                // Column for the file with custom logic
+                TextColumn::make('file')
+                    ->label('ملف')
+                    ->getStateUsing(function ($record) {
+                        if (empty($record->file)) {
+                            return '❌ لا يوجد ملف';
+                        }
+                        return '✅ ' . pathinfo($record->file, PATHINFO_EXTENSION) . ' ملف';
+                    }),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
-                    // Custom action to view details of a correspondence record
-                    // Tables\Actions\Action::make('view')
-                    //     ->label('View')
-                    //     ->url(fn ($record) => route('filament.admin.resources.correspondences.view', $record->id))
-                    //     ->icon('heroicon-o-eye'),
-
-                    // Action to edit a correspondence record
+                    // Edit action, visible only to the sender or creator
                     Tables\Actions\EditAction::make()
                         ->label('تعديل')
                         ->color('warning')
@@ -187,137 +189,103 @@ class CorrespondenceResource extends Resource
                             );
                         }),
 
-                    // Action to delete a correspondence record
+                    // Delete action
                     Tables\Actions\DeleteAction::make()->label('حذف'),
 
-                   // Action to mark as Approved
+                    // Mark as approved action, visible only to the receiver department
                     Tables\Actions\Action::make('markAsApproved')
                         ->label('وضع علامة على الموافقة')
                         ->action(function ($record) {
                             $userName = auth()->user()->name ?? 'غير معروف';
                             $departmentName = $record->receiverDepartment->name ?? 'غير معروف';
 
-                                $record->update([
-                                    'status' => 'الموافقة',
-                                    'notes' => "تمت الموافقة على المراسلة من قبل قسم {$departmentName} بواسطة المستخدم {$userName}",
-                                ]);
+                            $record->update([
+                                'status' => 'الموافقة',
+                                'notes' => "تمت الموافقة ✅ على المراسلة من قبل قسم 🔸{$departmentName}🔹 بواسطة المستخدم 👤{$userName}👤",
+                            ]);
 
                             Correspondence_log::create([
                                 'correspondence_id' => $record->id,
                                 'user_id' => $record->created_by,
                                 'action' => 'الموافقة',
-                                'note' => "تمت الموافقة على المراسلة من قبل قسم {$departmentName} بواسطة المستخدم {$userName}",
+                                'note' => "تمت الموافقة ✅ على المراسلة من قبل قسم 🔸{$departmentName}🔹 بواسطة المستخدم 👤{$userName}👤",
                             ]);
                         })
                         ->requiresConfirmation()
-                        ->color('success'),
+                        ->color('success')
+                        ->visible(function ($record) {
+                            return auth()->user()?->department_id === $record->receiver_department_id;
+                        }),
 
-
-                    // Action to mark as Rejected
+                    // Mark as rejected action, visible only to the receiver department
                     Tables\Actions\Action::make('markAsRejected')
                         ->label('وضع علامة على الرفض')
                         ->action(function ($record) {
                             $userName = auth()->user()->name ?? 'غير معروف';
                             $departmentName = $record->receiverDepartment->name ?? 'غير معروف';
 
-                                $record->update([
-                                    'status' => 'مرفوض',
-                                    'notes' => "تم رفض المراسلة من قبل قسم {$departmentName} بواسطة المستخدم {$userName}",
-                        ]);
+                            $record->update([
+                                'status' => 'مرفوض',
+                                'notes' => "تم رفض ❌ المراسلة من قبل قسم 🔹{$departmentName}🔸 بواسطة المستخدم 👤{$userName}👤",
+                            ]);
 
-                        Correspondence_log::create([
-                            'correspondence_id' => $record->id,
-                            'user_id' => $record->created_by,
-                            'action' => 'مرفوض',
-                            'note' => "تم رفض المراسلة من قبل قسم {$departmentName} بواسطة المستخدم {$userName}",
-                        ]);
-                    })
-                    ->requiresConfirmation()
-                    ->color('danger'),
+                            Correspondence_log::create([
+                                'correspondence_id' => $record->id,
+                                'user_id' => $record->created_by,
+                                'action' => 'مرفوض',
+                                'note' => "تم رفض ❌ المراسلة من قبل قسم 🔹{$departmentName}🔸 بواسطة المستخدم 👤{$userName}👤",
+                            ]);
+                        })
+                        ->requiresConfirmation()
+                        ->color('danger')
+                        ->visible(function ($record) {
+                            return auth()->user()?->department_id === $record->receiver_department_id;
+                        }),
 
+                    // Forward to department action, visible only to the receiver department
+                    Tables\Actions\Action::make('forwardToDepartment')
+                        ->label('الموافقة وتحويل إلى قسم آخر')
+                        ->form([
+                            Forms\Components\Select::make('new_receiver_department_id')
+                                ->label('اختر القسم الجديد')
+                                ->options(function ($record) {
+                                    return \App\Models\Department::query()
+                                        ->whereNotIn('id', [
+                                            $record->sender_department_id,
+                                            $record->receiver_department_id,
+                                        ])
+                                        ->pluck('name', 'id');
+                                })
+                                ->required(),
+                        ])
+                        ->action(function ($record, array $data) {
+                            $oldDept = $record->receiverDepartment?->name ?? 'غير معروف';
+                            $newDept = \App\Models\Department::find($data['new_receiver_department_id'])?->name ?? 'غير معروف';
+                            $senderDept = $record->senderDepartment?->name ?? 'غير معروف';
+                            $userName = auth()->user()->name;
 
-                    // // Action to mark a single correspondence as Approved
-                    // Tables\Actions\Action::make('markAsApproved')
-                    //     ->label('وضع علامة على الموافقة')
-                    //     ->action(function ($record) {
-                    //         $record->update([
-                    //             'status' => 'الموافقة',
-                    //             'notes' => 'تمت الموافقة على المراسلة من قبل قسم ' . ($record->receiverDepartment->name ?? 'غير معروف'),
+                            // Update correspondence
+                            $record->update([
+                                'receiver_department_id' => $data['new_receiver_department_id'],
+                                'status' => 'قيد الانتظار',
+                                'notes' => "📝تمت الموافقة✅على المراسلة من قبل قسم🔹($senderDept)🔸 وتحويلها من قسم 🔸 ($oldDept) 🔹 إلى قسم 🏢 ($newDept) 🏢 بواسطة 👤 ($userName) 👤 ",
+                            ]);
 
-                    //     ]);
-                            
-                    //         // Find the existing CorrespondenceLog and update it
-                    //         $log = Correspondence_log::where('correspondence_id', $record->id)->first();
-                    //         if ($log) {
-                    //             $log->update([
-                    //                 'action' => 'الموافقة',
-                    //                 'note' => 'تمت الموافقة على المراسلة من قبل قسم ' . ($record->receiverDepartment->name ?? 'غير معروف'),
-                    //             ]);
-                    //         }
-                    //     })
-                    //     ->requiresConfirmation()
-                    //     ->color('success'),
-
-                    // // Action to mark a single correspondence as Rejected
-                    // Tables\Actions\Action::make('markAsRejected')
-                    //     ->label('وضع علامة على الرفض')
-                    //     ->action(function ($record) {
-                    //         $record->update([
-                    //             'status' => 'مرفوض',
-                    //             'notes' => 'تم رفض المراسلة من قبل قسم ' . ($record->receiverDepartment->name ?? 'غير معروف'),
-                    //         ]);
-
-                            
-                    //         // Find the existing CorrespondenceLog and update it
-                    //         $log = Correspondence_log::where('correspondence_id', $record->id)->first();
-                    //         if ($log) {
-                    //             $log->update([
-                    //                 'action' => 'مرفوض',
-                    //                 'note' => 'تم رفض المراسلة من قبل قسم ' . ($record->receiverDepartment->name ?? 'غير معروف'),
-                    //             ]);
-                    //         }
-                    //     })
-                    //     ->requiresConfirmation()
-                    //     ->color('danger'),
-
-                        Tables\Actions\Action::make('forwardToDepartment')
-                            ->label('الموافقة وتحويل إلى قسم آخر')
-                            ->form([
-                                Forms\Components\Select::make('receiver_department_id')
-                                    ->label('اختر القسم الجديد')
-                                    ->relationship('receiverDepartment', 'name')
-                                    ->required()
-                                    ->options(function ($record) {
-                                        // Exclude current sender and receiver departments
-                                        $departments = \App\Models\Department::query();
-                                        if ($record) {
-                                            $departments->where('id', '!=', $record->sender_department_id)
-                                                ->where('id', '!=', $record->receiver_department_id);
-                                        }
-                                        return $departments->pluck('name', 'id');
-                                    }),
-                            ])
-                            ->action(function ($record, array $data) {
-                                // Update the correspondence with the new department
-
-                                $record->update([
-                                    'receiver_department_id' => $data['receiver_department_id'],
-                                    'status' => '⏳ قيد الانتظار',
-                                    'notes' => 'تمت الموافقة على المراسلة من قبل قسم ' . ($record->senderDepartment->name ?? 'غير معروف') . ' إلى قسم ' . ($record->receiverDepartment->name ?? 'غير معروف'),
-                                ]);
-
-                                // Log the forwarding action
-                                Correspondence_Log::create([
-                                    'correspondence_id' => $record->id,
-                                    'user_id' => $record->created_by,
-                                    'action' => 'الموافقة وتحويل إلى قسم آخر',
-                                    'note' => 'تمت الموافقة على المراسلة من قبل قسم ' . ($record->senderDepartment->name ?? 'غير معروف') . ' إلى قسم ' . ($record->receiverDepartment->name ?? 'غير معروف'),
-                                ]);
-                            })
-                            ->icon('heroicon-o-arrow-right')
-                            ->color('success')
-                            ->requiresConfirmation(),
-            ])
+                            // Create log
+                            Correspondence_log::create([
+                                'correspondence_id' => $record->id,
+                                'user_id' => $record->created_by,
+                                'action' => 'الموافقة وتحويل إلى قسم آخر',
+                                'note' => " 📝 تمت الموافقة ✅ على المراسلة من قبل قسم 🔹( $senderDept )🔸  وتحويلها من قسم 🔸($oldDept)🔹 إلى قسم 🏢 ( $newDept ) 🏢 بواسطة 👤 ( $userName ) 👤 ",
+                            ]);
+                        })
+                        ->icon('heroicon-o-arrow-right')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->visible(function ($record) {
+                            return auth()->user()?->department_id === $record->receiver_department_id;
+                        }),
+                ]),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
