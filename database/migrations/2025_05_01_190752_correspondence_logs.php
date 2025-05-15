@@ -16,8 +16,8 @@ return new class extends Migration
             $table->unsignedBigInteger('correspondence_id'); // Foreign key linking to 'correspondences'
             $table->unsignedBigInteger('user_id'); // Foreign key linking to 'users'
             // Define foreign key constraints
-            $table->foreign('correspondence_id')->references('id')->on('correspondences')->onDelete('cascade');
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            // $table->foreign('correspondence_id')->references('id')->on('correspondences')->onDelete('cascade');
+            // $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             
             $table->string('action')->default('pending'); // Action performed (e.g., created, updated)
             $table->text('note')->nullable(); // Optional note about the action    

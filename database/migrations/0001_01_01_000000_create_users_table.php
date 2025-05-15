@@ -15,7 +15,6 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id(); // Primary key
             $table->unsignedBigInteger('department_id')->nullable(); // Foreign key linking to 'departments', nullable to allow users without a department
-            $table->foreign('department_id')->references('id')->on('departments')->onDelete('set null'); // Set department_id to null if the department is deleted
             $table->string('name'); // Name of the user
             $table->string('email')->unique(); // Unique email address of the user
             $table->string('password'); // Password for the user

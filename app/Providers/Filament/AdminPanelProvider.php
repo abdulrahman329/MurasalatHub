@@ -39,8 +39,15 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                Widgets\AccountWidget::class,
-            ])->collapsibleNavigationGroups(false)
+    \App\Filament\Widgets\StatsOverview::class,          // 📊 Overview cards on top
+    \App\Filament\Widgets\BlogPostsChart::class,
+    \App\Filament\Widgets\DoughnutChartWidget::class,
+    \App\Filament\Widgets\RoleDistributionChart::class,
+    \App\Filament\Widgets\SalesLineChart::class,
+    \App\Filament\Widgets\UserRegistrationsChart::class,
+    \Filament\Widgets\AccountWidget::class,              // This can stay last (optional)
+])
+->collapsibleNavigationGroups(false)
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
